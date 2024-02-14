@@ -1,0 +1,12 @@
+Package: cgiarGenomics
+Type: Package
+Title: Base functions for management of genomic data
+Version: 1.0.1
+Date: 2022-09-09
+Author: Sergio
+Maintainer: Sergio <s.cruz@cgiar.org>
+Description: Software for genomics applications
+Depends: R (>= 3.5.0)
+License: GPL (>= 2)
+Imports: stats, graphics, grDevices
+Suggests: parallel
