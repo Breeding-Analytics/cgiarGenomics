@@ -27,19 +27,19 @@ read_wide_geno_tabular <- function(table, first_snp, last_snp, gds_outfile, rs_p
   # convert to genligth format
   gl_obj <- new("genlight", alellelic_dosage)
 
-  indNames(gl_obj) <- indNames(gi)
-  locNames(gl_obj) <- locNames(gi)
-  chromosome(gl_obj) <- as.factor(table[,chr_pos])
-  position(gl_obj) <- as.integer(table[,pos_pos])
+  adegenet::indNames(gl_obj) <- adegenet::indNames(gi)
+  adegenet::locNames(gl_obj) <- adegenet::locNames(gi)
+  adegenet::chromosome(gl_obj) <- as.factor(table[,chr_pos])
+  adegenet::position(gl_obj) <- as.integer(table[,pos_pos])
 
   # create gds of snprelate
 
   SNPRelate::snpgdsCreateGeno(gds.fn = gds_outfile,
                               genmat = t(as.matrix(gl_obj)),
-                              sample.id = indNames(gl_obj),
-                              snp.id = locNames(gl_obj),
-                              snp.chromosome = chr(gl_obj),
-                              snp.position = position(gl_obj),
+                              sample.id = adegenet::indNames(gl_obj),
+                              snp.id = adegenet::locNames(gl_obj),
+                              snp.chromosome = adegenet::chr(gl_obj),
+                              snp.position = adegenet::position(gl_obj),
                               snpfirstdim = TRUE)
 
 }
@@ -65,8 +65,8 @@ read_DartR <- function(dart_path, gds_outfile){
   outfile <- basename(gds_outfile)
   outpath <- dirname(gds_outfile)
   if (length(dart_path) > 0){
-    genofile <- gl.read.dart(dart_path)
-    gl2gds(genofile,
+    genofile <- dartR::gl.read.dart(dart_path)
+    dartR::gl2gds(genofile,
            outfile = outfile,
            outpath = outpath)
   }
