@@ -7,7 +7,7 @@ read_wide_geno_tabular <- function(table, first_snp, last_snp, gds_outfile, rs_p
   # read marker columns and transpose to obatin samples x snps
   mt <- t(table[,c(first_snp:last_snp)])
   colnames(mt) <- table[, rs_pos]
-  # convert to genind data structure
+  # convert to genind data structure using a separator empty
   gi <- adegenet::df2genind(mt, sep = "", ploidy = 2)
   locna <- gi@loc.n.all
   ccc <- 1
@@ -23,25 +23,20 @@ read_wide_geno_tabular <- function(table, first_snp, last_snp, gds_outfile, rs_p
   }
 
   alellelic_dosage <- gi@tab[, ccc]
-
-  # convert to genligth format
-  gl_obj <- new("genlight", alellelic_dosage)
-
-  adegenet::indNames(gl_obj) <- adegenet::indNames(gi)
-  adegenet::locNames(gl_obj) <- adegenet::locNames(gi)
-  adegenet::chromosome(gl_obj) <- as.factor(table[,chr_pos])
-  adegenet::position(gl_obj) <- as.integer(table[,pos_pos])
+  alleles <- as.vector(unlist(lapply(gi@all.names,
+                                     function(sublist) paste(sublist,
+                                                             collapse = "/"))))
 
   # create gds of snprelate
 
   SNPRelate::snpgdsCreateGeno(gds.fn = gds_outfile,
-                              genmat = t(as.matrix(gl_obj)),
-                              sample.id = adegenet::indNames(gl_obj),
-                              snp.id = adegenet::locNames(gl_obj),
-                              snp.chromosome = adegenet::chr(gl_obj),
-                              snp.position = adegenet::position(gl_obj),
+                              genmat = t(alellelic_dosage),
+                              sample.id = adegenet::indNames(gi),
+                              snp.id = adegenet::locNames(gi),
+                              snp.chromosome = as.factor(table[,chr_pos]),
+                              snp.position = as.integer(table[,pos_pos]),
+                              snp.allele = alleles,
                               snpfirstdim = TRUE)
-
 }
 
 read_vcf <- function(vcf_path, gds_outfile){
@@ -71,3 +66,4 @@ read_DartR <- function(dart_path, gds_outfile){
            outpath = outpath)
   }
 }
+
