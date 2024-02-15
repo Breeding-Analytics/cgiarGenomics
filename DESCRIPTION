@@ -9,4 +9,4 @@ Description: Software for genomics applications
 Depends: R (>= 3.5.0)
 License: GPL (>= 2)
 Imports: stats, graphics, grDevices
-Suggests: parallel
+Suggests: parallel, adegenet, dartR, SNPRelate
