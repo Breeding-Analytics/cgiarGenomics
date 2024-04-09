@@ -1,6 +1,10 @@
 importFrom("grDevices", "dev.cur", "dev.new", "dev.next", "dev.set")
 importFrom("graphics", "axis", "lines", "par", "points", "title")
 importFrom("stats", "cov", "dist", "median", "model.matrix", "optimize", "pbeta", "ppoints", "predict", "smooth.spline","var")
-export(read_wide_geno_tabular, read_vcf, read_plink, read_DartR)
+export(read_hapmap, read_vcf, read_DArTSeq_SNP, read_DArTSeq_PA,
+       read_DArT_Tag, filter_monomorphic, filter_missing_rate_by_marker,
+       filter_missing_rate_by_indv, filter_MAF,
+        plot_missingnes_by_marker, plot_MAF, plot_overall_missingness,
+       )
 
 
