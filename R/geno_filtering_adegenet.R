@@ -1,8 +1,3 @@
-library(dplyr)
-library(poppr)
-gi <- geno$geno
-
-
 # filter monomorphic markers
 filter_monomorphic <- function(geno_obj)  {
   
