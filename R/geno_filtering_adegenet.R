@@ -15,8 +15,9 @@ filter_monomorphic <- function(geno_obj)  {
           "monomorphic Loci!", sep = ' ')
     print_log_message(msj)
 
+    id_var <- "ID"
     meta <- geno_obj$meta %>%
-      filter(ID %in% names(poly_gi@all.names))
+      filter(!!id_var %in% names(poly_gi@all.names))
 
     geno_obj <- list(geno = poly_gi, meta = meta)
 
@@ -33,9 +34,9 @@ filter_missing_rate_by_marker <- function(geno_obj, threshold){
   lmiss_f_gi <- poppr::missingno(gi,
                    type = 'loci',
                    cutoff = threshold)
-
+  id_var <- "ID"
   meta <- geno_obj$meta %>%
-    filter(ID %in% names(lmiss_f_gi@all.names))
+    filter(!!id_var %in% names(lmiss_f_gi@all.names))
 
   geno_obj <- list(geno = lmiss_f_gi, meta = meta)
 
@@ -49,9 +50,9 @@ filter_missing_rate_by_indv <- function(geno_obj, threshold){
   smiss_f_gi <- poppr::missingno(gi,
                                  type = 'geno',
                                  cutoff = threshold)
-
+  id_var <- "ID"
   meta <- geno_obj$meta %>%
-    filter(ID %in% names(smiss_f_gi@all.names))
+    filter(!!id_var %in% names(smiss_f_gi@all.names))
 
   geno_obj <- list(geno = smiss_f_gi, meta = meta)
 
@@ -74,9 +75,9 @@ filter_MAF <- function(geno_obj, threshold){
                  "Loci because MAF <",
                  threshold,"!", sep = ' ')
     print_log_message(msj)
-
+    id_var <- "ID"
     meta <- geno_obj$meta %>%
-      filter(ID %in% names(maf_f_gi@all.names))
+      filter(!!id_var %in% names(maf_f_gi@all.names))
 
     geno_obj <- list(geno = maf_f_gi, meta = meta)
 
