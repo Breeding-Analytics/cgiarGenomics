@@ -17,7 +17,7 @@ filter_monomorphic <- function(geno_obj)  {
 
     id_var <- "ID"
     meta <- geno_obj$meta %>%
-      filter(!!id_var %in% names(poly_gi@all.names))
+      dplyr::filter(!!id_var %in% names(poly_gi@all.names))
 
     geno_obj <- list(geno = poly_gi, meta = meta)
 
@@ -36,7 +36,7 @@ filter_missing_rate_by_marker <- function(geno_obj, threshold){
                    cutoff = threshold)
   id_var <- "ID"
   meta <- geno_obj$meta %>%
-    filter(!!id_var %in% names(lmiss_f_gi@all.names))
+    dplyr::filter(!!id_var %in% names(lmiss_f_gi@all.names))
 
   geno_obj <- list(geno = lmiss_f_gi, meta = meta)
 
@@ -52,7 +52,7 @@ filter_missing_rate_by_indv <- function(geno_obj, threshold){
                                  cutoff = threshold)
   id_var <- "ID"
   meta <- geno_obj$meta %>%
-    filter(!!id_var %in% names(smiss_f_gi@all.names))
+    dplyr::filter(!!id_var %in% names(smiss_f_gi@all.names))
 
   geno_obj <- list(geno = smiss_f_gi, meta = meta)
 
@@ -77,7 +77,7 @@ filter_MAF <- function(geno_obj, threshold){
     print_log_message(msj)
     id_var <- "ID"
     meta <- geno_obj$meta %>%
-      filter(!!id_var %in% names(maf_f_gi@all.names))
+      dplyr::filter(!!id_var %in% names(maf_f_gi@all.names))
 
     geno_obj <- list(geno = maf_f_gi, meta = meta)
 
