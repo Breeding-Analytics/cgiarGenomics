@@ -1,6 +1,6 @@
 # filter monomorphic markers
 filter_monomorphic <- function(geno_obj)  {
-  
+
   gi <- geno_obj$geno
   # select poly markers
   polymorphic <- names(which(adegenet::isPoly(gi)))
@@ -14,12 +14,12 @@ filter_monomorphic <- function(geno_obj)  {
           nloci - length(polymorphic),
           "monomorphic Loci!", sep = ' ')
     print_log_message(msj)
-    
-    meta <- geno_obj$meta %>% 
+
+    meta <- geno_obj$meta %>%
       filter(ID %in% names(poly_gi@all.names))
-    
+
     geno_obj <- list(geno = poly_gi, meta = meta)
-    
+
     return(geno_obj)
   } else{
     print_log_message("Any monomorphic marker was found!")
@@ -29,36 +29,39 @@ filter_monomorphic <- function(geno_obj)  {
 
 # filter by missing rate by marker a geneind obj
 filter_missing_rate_by_marker <- function(geno_obj, threshold){
+  gi <- geno_obj$geno
   lmiss_f_gi <- poppr::missingno(gi,
                    type = 'loci',
                    cutoff = threshold)
-  
-  meta <- geno_obj$meta %>% 
+
+  meta <- geno_obj$meta %>%
     filter(ID %in% names(lmiss_f_gi@all.names))
-  
+
   geno_obj <- list(geno = lmiss_f_gi, meta = meta)
-  
+
   return(geno_obj)
 }
 
 
 # filter by missing rate by sample a geneind obj
 filter_missing_rate_by_indv <- function(geno_obj, threshold){
+  gi <- geno_obj$geno
   smiss_f_gi <- poppr::missingno(gi,
                                  type = 'geno',
                                  cutoff = threshold)
-  
-  meta <- geno_obj$meta %>% 
+
+  meta <- geno_obj$meta %>%
     filter(ID %in% names(smiss_f_gi@all.names))
-  
+
   geno_obj <- list(geno = smiss_f_gi, meta = meta)
-  
+
   return(geno_obj)
 }
 
 
 # filter by minor allele frequency
 filter_MAF <- function(geno_obj, threshold){
+  gi <- geno_obj$geno
   maf_loci <- names(which(adegenet::minorAllele(gi) >= threshold))
   # number of total loci
   nloci <- adegenet::nLoc(gi)
@@ -71,12 +74,12 @@ filter_MAF <- function(geno_obj, threshold){
                  "Loci because MAF <",
                  threshold,"!", sep = ' ')
     print_log_message(msj)
-    
-    meta <- geno_obj$meta %>% 
+
+    meta <- geno_obj$meta %>%
       filter(ID %in% names(maf_f_gi@all.names))
-    
+
     geno_obj <- list(geno = maf_f_gi, meta = meta)
-    
+
     return(geno_obj)}
   else{
     msg <- paste("Any locus with MAF smaller than",
