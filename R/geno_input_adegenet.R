@@ -54,23 +54,17 @@ read_hapmap <- function(path, ploidity = 2, sep = "") {
   
   # Read marker columns and transpose to obtain samples x snps
   mt <- t(table[, c(12:dim(table)[2])])
-  
   non_biallelic <- c()
-  # Convert genotypes to 0, 1, 2, and NA
   for (i in 1:dim(mt)[2]) {
     v1 <- mt[, i]
-    allele_count = get_alleles_count_char(v1)
+    allele_count = get_alleles_count_char(v1, ploidity)
     if (length(names(allele_count)) >= 3) {
       non_biallelic <- c(i, non_biallelic)
     } else {
-      homRef <- paste0(names(allele_count)[1], names(allele_count)[1])
-      homAlt <- paste0(names(allele_count)[2], names(allele_count)[2])
-      het1 <- paste0(names(allele_count)[1], names(allele_count)[2])
-      het2 <- paste0(names(allele_count)[2], names(allele_count)[1])
-      mt[, i] <- gsub(homRef, "0", mt[, i])
-      mt[, i] <- gsub(homAlt, "2", mt[, i])
-      mt[, i] <- gsub(het1, "1", mt[, i])
-      mt[, i] <- gsub(het2, "1", mt[, i])
+      alt_allele <- names(allele_count)[2]
+      l <- get_allelic_dosage(mt[,i], allele_count, ploidity)
+      mt[,i] <- get_allelic_dosage(mt[,i], allele_count, ploidity)
+      
     }
   }
   
@@ -97,13 +91,6 @@ read_hapmap <- function(path, ploidity = 2, sep = "") {
   print_log_message(bi_message)
   return(gl)
 }
-
-# Test
-# ploidity = 2
-# sep = ""
-# path <- 'tests/hmp_fmt/geno_pruned_hmp.txt'
-# geno <- read_hapmap(path = path)
-
 
 #' read_vcf
 #'
@@ -151,25 +138,22 @@ read_vcf <- function(path, ploidity = 2, na_reps = c()) {
   individuals <- rownames(mt)
   non_biallelic <- c()
   
-  # Convert genotypes to 0, 1, 2, and NA
+  
   for (i in 1:dim(mt)[2]) {
     v1 <- mt[, i]
     allele_count <- get_alleles_count_char(v1, ploidity = ploidity, sep = '/')
     
     # If the marker is not bi-allelic, add it to the non_biallelic vector
     if (length(names(allele_count)) > 3) {
-      print(allele_count)
       non_biallelic <- c(i, non_biallelic)
     } else {
-      # Substitute genotype codes with 0, 1, 2 for homozygous reference, heterozygous, and homozygous alternative
-      homRef <- paste0(names(allele_count)[1], names(allele_count)[1])
-      homAlt <- paste0(names(allele_count)[2], names(allele_count)[2])
-      het1 <- paste0(names(allele_count)[1], names(allele_count)[2])
-      het2 <- paste0(names(allele_count)[2], names(allele_count)[1])
-      mt[, i] <- gsub(homRef, 0, mt[, i])
-      mt[, i] <- gsub(homAlt, 0, mt[, i])
-      mt[, i] <- gsub(het1, 1, mt[, i])
-      mt[, i] <- gsub(het2, 1, mt[, i])
+      
+      v <- paste(v1, collapse = " ")
+      v <- gsub('/', "", v)
+      v <- unlist(strsplit(v, " "))
+      
+      alt_allele <- names(allele_count)[2]
+      mt[,i] <- get_allelic_dosage(v, allele_count, ploidity)
     }
   }
   
@@ -205,6 +189,7 @@ read_vcf <- function(path, ploidity = 2, na_reps = c()) {
   return(gl)
 }
 
+
 #' read_DArTSeq_SNP
 #'
 #' This function reads a DArTSeq SNP dataset from a CSV file and converts it into a genlight object using
@@ -223,7 +208,6 @@ read_vcf <- function(path, ploidity = 2, na_reps = c()) {
 read_DArTSeq_SNP <- function(dart_path, snp_id, chr_name, pos_name) {
   # Read the DArTSeq CSV file
   gl <- dartR::gl.read.dart(dart_path)
-  
   # DArTSeq stores position and chromosome information in the 'other' slot
   # It is necessary to modify it to be compatible with the native genlight object
   pos <- c(gl@other$loc.metrics[, pos_name])
