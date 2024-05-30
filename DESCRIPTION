@@ -8,5 +8,6 @@ Maintainer: Sergio <s.cruz@cgiar.org>
 Description: Software for genomics applications
 Depends: R (>= 3.5.0)
 License: GPL (>= 2)
-Imports: stats, graphics, grDevices
-Suggests: parallel, adegenet, dartR, SNPRelate
+Imports: stats, graphics, grDevices, vcfR, polyBreedR, adegenet, dartR,
+  SNPRelate, poppr, dplyr, ggplot2, 
+Suggests: parallel
