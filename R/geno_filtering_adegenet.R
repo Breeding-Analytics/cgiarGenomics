@@ -1,5 +1,6 @@
+
 # filter monomorphic markers
-filter_monomorphic <- function(geno_obj)  {
+filter_monomorphic <- function(geno_obj) {
 
   gi <- geno_obj$geno
   # select poly markers
