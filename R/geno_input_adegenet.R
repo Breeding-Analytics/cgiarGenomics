@@ -54,6 +54,7 @@ read_hapmap <- function(path, ploidity = 2, sep = "") {
   
   # Read marker columns and transpose to obtain samples x snps
   mt <- t(table[, c(12:dim(table)[2])])
+  alleles_list <- c()
   non_biallelic <- c()
   for (i in 1:dim(mt)[2]) {
     v1 <- mt[, i]
@@ -61,7 +62,8 @@ read_hapmap <- function(path, ploidity = 2, sep = "") {
     if (length(names(allele_count)) >= 3) {
       non_biallelic <- c(i, non_biallelic)
     } else {
-      alt_allele <- names(allele_count)[2]
+      alleles_str <- paste(names(allele_count), collapse = "/")
+      alleles_list <- c(alleles_str, alleles_list)
       l <- get_allelic_dosage(mt[,i], allele_count, ploidity)
       mt[,i] <- get_allelic_dosage(mt[,i], allele_count, ploidity)
       
@@ -78,6 +80,7 @@ read_hapmap <- function(path, ploidity = 2, sep = "") {
               ind.names = individuals,
               chromosome = table[-c(non_biallelic), 3],
               position = table[-c(non_biallelic), 4])
+    adegenet::alleles(gl) <- alleles_list[-c(non_biallelic)]
   } else {
     bi_message <- "Data confirmed bi-allelic"
     gl <- new("genlight",
@@ -87,6 +90,7 @@ read_hapmap <- function(path, ploidity = 2, sep = "") {
               ind.names = individuals,
               chromosome = table[1:nrows, 3],
               position = table[1:nrows, 4])
+    adegenet::alleles(gl) <- alleles_list
   }
   print_log_message(bi_message)
   return(gl)
@@ -137,11 +141,12 @@ read_vcf <- function(path, ploidity = 2, na_reps = c()) {
   loci <- paste0(meta_vcf[!cols_to_remove, "CHROM"], "_", meta_vcf[!cols_to_remove, "POS"])
   individuals <- rownames(mt)
   non_biallelic <- c()
-  
+  alleles_list <- c()
   
   for (i in 1:dim(mt)[2]) {
     v1 <- mt[, i]
     allele_count <- get_alleles_count_char(v1, ploidity = ploidity, sep = '/')
+    
     
     # If the marker is not bi-allelic, add it to the non_biallelic vector
     if (length(names(allele_count)) > 3) {
@@ -151,8 +156,8 @@ read_vcf <- function(path, ploidity = 2, na_reps = c()) {
       v <- paste(v1, collapse = " ")
       v <- gsub('/', "", v)
       v <- unlist(strsplit(v, " "))
-      
-      alt_allele <- names(allele_count)[2]
+      alleles_str <- paste(names(allele_count), collapse = "/")
+      alleles_list <- c(alleles_str, alleles_list)
       mt[,i] <- get_allelic_dosage(v, allele_count, ploidity)
     }
   }
@@ -172,6 +177,7 @@ read_vcf <- function(path, ploidity = 2, na_reps = c()) {
               ind.names = individuals,
               chromosome = meta_vcf[-c(non_biallelic), "CHROM"],
               position = as.numeric(meta_vcf[-c(non_biallelic), "POS"]))
+    adegenet::alleles(gl) <- alleles_list[-c(non_biallelic)]
   } else {
     bi_message <- "Data confirmed bi-allelic"
     
@@ -183,6 +189,7 @@ read_vcf <- function(path, ploidity = 2, na_reps = c()) {
               ind.names = individuals,
               chromosome = meta_vcf[-c(na_markers), "CHROM"],
               position = meta_vcf[-c(na_markers), "POS"])
+    adegenet::alleles(gl) <- alleles_list
   }
   
   print_log_message(bi_message)
@@ -227,8 +234,8 @@ read_DArTSeq_SNP <- function(dart_path, snp_id, chr_name, pos_name) {
   gl <- gl[, -c(no_loc)]
   
   # Assign the position and chromosome information to the genlight object
-  position(gl) <- gl@other$loc.metrics[, pos_name]
-  chromosome(gl) <- gl@other$loc.metrics[, chr_name]
+  adegenet::position(gl) <- gl@other$loc.metrics[, pos_name]
+  adegenet::chromosome(gl) <- gl@other$loc.metrics[, chr_name]
   
   return(gl)
 }
@@ -271,8 +278,8 @@ read_DArTSeq_PA <- function(dart_path, marker_id, chr_name, pos_name) {
   gl <- gl[, -c(no_loc)]
   
   # Assign the position and chromosome information to the genlight object
-  position(gl) <- gl@other$loc.metrics[-c(no_loc), pos_name]
-  chromosome(gl) <- gl@other$loc.metrics[-c(no_loc), chr_name]
+  adegenet::position(gl) <- gl@other$loc.metrics[-c(no_loc), pos_name]
+  adegenet::chromosome(gl) <- gl@other$loc.metrics[-c(no_loc), chr_name]
   
   return(gl)
 }
