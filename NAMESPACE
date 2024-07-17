@@ -4,6 +4,14 @@ importFrom("stats", "cov", "dist", "median", "model.matrix", "optimize", "pbeta"
 export(read_hapmap, read_vcf, read_DArTSeq_SNP,
        read_DArTSeq_PA, read_DArT_Tag,
        get_ind_missing, get_loc_missing,
-       get_overall_missingness, get_heterozygosity_metrics,get_maf)
+       get_overall_missingness, get_heterozygosity_metrics,
+       get_maf, get_loc_heterozygosity,
+       get_ind_heterozygosity, recalc_metrics,
+       filter_missing_rate_by_indv,
+       filter_missing_rate_by_marker,
+       filter_MAF,
+       filter_heterozygosis_by_loc,
+       filter_heterozygosis_by_ind
+       )
 
 

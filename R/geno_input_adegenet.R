@@ -92,6 +92,7 @@ read_hapmap <- function(path, ploidity = 2, sep = "") {
     adegenet::alleles(gl) <- alleles_list
   }
   print_log_message(bi_message)
+  gl <- recalc_metrics(gl)
   return(gl)
 }
 
@@ -189,6 +190,7 @@ read_vcf <- function(path, ploidity = 2, na_reps = c()) {
     adegenet::alleles(gl) <- alleles_list
   }
   print_log_message(bi_message)
+  gl <- recalc_metrics(gl)
   return(gl)
 }
 
