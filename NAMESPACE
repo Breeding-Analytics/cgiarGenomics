@@ -11,7 +11,8 @@ export(read_hapmap, read_vcf, read_DArTSeq_SNP,
        filter_missing_rate_by_marker,
        filter_MAF,
        filter_heterozygosis_by_loc,
-       filter_heterozygosis_by_ind
+       filter_heterozygosis_by_ind,
+       get_overall_summary
        )
 
 

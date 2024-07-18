@@ -134,5 +134,22 @@ recalc_metrics <- function(gl){
 }
 
 
+get_overall_summary <- function(gl){
+  ninds <- adegenet::nInd(gl)
+  nlocs <- adegenet::nLoc(gl)
+  overall_missiness <- mean(gl@other$ind.metrics$ind_miss)
+  overall_heterozygosity <- mean(gl@other$ind.metrics$ind_het)
+  overall_maf <- mean(gl@other$loc.metrics$maf)
+  
+  out <- list(
+    nind = ninds,
+    nloc = nlocs,
+    ov_miss = overall_missiness,
+    ov_het = overall_heterozygosity,
+    ov_maf = overall_maf
+  )
+  return(out)
+}
+
 
 

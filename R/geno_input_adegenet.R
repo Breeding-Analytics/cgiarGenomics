@@ -235,7 +235,8 @@ read_DArTSeq_SNP <- function(dart_path, snp_id, chr_name, pos_name) {
   adegenet::position(gl) <- gl@other$loc.metrics[, pos_name]
   adegenet::chromosome(gl) <- gl@other$loc.metrics[, chr_name]
   
-  return(gl)
+  gl_recalc <- recalc_metrics(gl)
+  return(gl_recalc)
 }
 
 #' Read a DArTSeq Presence/Absence file
