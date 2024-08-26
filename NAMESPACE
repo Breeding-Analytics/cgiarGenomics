@@ -2,7 +2,7 @@ importFrom("grDevices", "dev.cur", "dev.new", "dev.next", "dev.set")
 importFrom("graphics", "axis", "lines", "par", "points", "title")
 importFrom("stats", "cov", "dist", "median", "model.matrix", "optimize", "pbeta", "ppoints", "predict", "smooth.spline","var")
 export(read_hapmap, read_vcf, read_DArTSeq_SNP,
-       read_DArTSeq_PA, read_DArT_Tag,
+       read_DArT_Tag,
        get_ind_missing, get_loc_missing,
        get_overall_missingness, get_heterozygosity_metrics,
        get_maf, get_loc_heterozygosity,

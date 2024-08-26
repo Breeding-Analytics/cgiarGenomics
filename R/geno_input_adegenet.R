@@ -1,3 +1,5 @@
+
+
 #' read_hapmap
 #'
 #' This function reads a hapmap file (uncompressed) and converts it into a genlight object.
@@ -18,11 +20,10 @@ read_hapmap <- function(path, ploidity = 2, sep = "") {
   table <- read_tabular_geno(path)
   
   # Define the expected column names for the hapmap file
-  hapmap_snp_attr <- c('rs#', 'alleles', 'chrom', 'pos', 'strand', 'assembly#',
-                       'center', 'protLSID', 'assayLSID', 'panel', 'QCcode')
+  hapmap_snp_attr <- c('rs#', 'alleles', 'chrom', 'pos')
   
   # Check if the first 11 columns in the input file match the expected column names
-  if (length(intersect(hapmap_snp_attr, colnames(table)[1:11])) != 11) {
+  if (length(intersect(hapmap_snp_attr, colnames(table)[1:4])) != 4) {
     print_log_message("Hapmap file doesn't have the standard column names")
     stop()
   }
@@ -47,52 +48,35 @@ read_hapmap <- function(path, ploidity = 2, sep = "") {
     cat(error("Fatal Error: Individual labels are not unique, check and edit your input file\n"))
     stop()
   }
-  if (length(unique(loci)) != length(loci)) {
-    cat(error("Fatal Error: loci not unique, check and edit your input file\n"))
-    stop()
-  }
+  
+  # Metadata processing
+  meta <- table[1:11] %>% 
+    mutate(ref = str_split(alleles, '/', simplify = TRUE)[,1],
+           alt = map_chr(str_split(alleles, '/'), ~ paste(.x[-1], collapse = ","))) %>% 
+    mutate(alt = na_if(alt, "")) %>% 
+    select('rs#', chrom, pos, ref, alt) %>% 
+    rename(id = 'rs#')
+  
+  meta <- process_metadata(meta)
+  
   
   # Read marker columns and transpose to obtain samples x snps
-  mt <- t(table[, c(12:dim(table)[2])])
-  alleles_list <- c()
-  non_biallelic <- c()
-  for (i in 1:dim(mt)[2]) {
-    v1 <- mt[, i]
-    allele_count = get_alleles_count_char(v1, ploidity)
-    if (length(names(allele_count)) != 2) {
-      non_biallelic <- c(i, non_biallelic)
-    } else {
-      l <- get_allelic_dosage(mt[,i], allele_count, ploidity)
-      mt[,i] <- get_allelic_dosage(mt[,i], allele_count, ploidity)
-      alleles_str <- paste(names(allele_count), collapse = "/")
-      alleles_list <- c(alleles_list,alleles_str)
-    }
-  }
+  mt <- t(table[!meta$filter, c(12:dim(table)[2])])
+  allele_set <- paste(meta$ref[!meta$filter], meta$alt[!meta$filter], sep='/')
+  gt <- mapply(function(col, arg, ploidity) get_allelic_dosage(mt[,col], arg,ploidity),
+               col = seq(1,dim(mt)[2]), 
+               arg = allele_set,
+               ploidity = ploidity)
   
-  if (length(non_biallelic) > 0) {
-    bi_message <- paste0("From ", nrows, "loci, ",
-                         length(non_biallelic), " aren't bi-allelic")
-    gl <- new("genlight",
-              mt[, -c(non_biallelic)],
-              ploidy = ploidity,
-              loc.names = loci[-c(non_biallelic)],
-              ind.names = individuals,
-              chromosome = table[-c(non_biallelic), 3],
-              position = table[-c(non_biallelic), 4])
-    adegenet::alleles(gl) <- alleles_list
-  } else {
-    bi_message <- "Data confirmed bi-allelic"
-    gl <- new("genlight",
-              mt,
-              ploidy = ploidity,
-              loc.names = loci,
-              ind.names = individuals,
-              chromosome = table[1:nrows, 3],
-              position = table[1:nrows, 4])
-    adegenet::alleles(gl) <- alleles_list
-  }
-  print_log_message(bi_message)
-  gl <- recalc_metrics(gl)
+  gl <- new("genlight",
+            gt,
+            ploidy = ploidity,
+            loc.names = meta$id[!meta$filter],
+            ind.names = individuals,
+            chromosome = meta$chrom[!meta$filter],
+            position = meta$pos[!meta$filter])
+  adegenet::alleles(gl) <- allele_set
+  gl_recalc <- recalc_metrics(gl)
   return(gl)
 }
 
@@ -110,88 +94,47 @@ read_hapmap <- function(path, ploidity = 2, sep = "") {
 #' @examples
 #' read_vcf("path/to/vcf/file.vcf", ploidity = 2)
 #' read_vcf("path/to/vcf/file.vcf.gz", ploidity = 4, na_reps = c("-", "./."))
-read_vcf <- function(path, ploidity = 2, na_reps = c()) {
+read_vcf <- function(path, ploidity = 2, na_reps = c("-", "./.")) {
   # Read the VCF file
   vcf <- vcfR::read.vcfR(path)
   
   # Get the metadata from the VCF file
-  meta_vcf <- vcfR::getFIX(vcf)
+  meta_vcf <- as.data.frame(vcfR::getFIX(vcf))
   
-  # Extract the genotype data and transpose it (samples x snps)
-  mt <- t(vcfR::extract.gt(vcf, return.alleles = T))
+  meta <- meta_vcf %>% 
+    rename(id = ID,
+           chrom = CHROM,
+           pos = POS,
+           ref = REF,
+           alt = ALT) %>% 
+  select(id, chrom, pos, ref, alt)
   
-  # If there are any NA representations provided, replace them with NA
+  meta <- process_metadata(meta)
+  mt <- t(vcfR::extract.gt(vcf, return.alleles = T)[!meta$filter,])
   if (length(na_reps) > 0) {
     idx <- which(mt %in% na_reps)
     mt[idx] <- NA
   }
   
-  # Remove markers where all samples have missing data
-  cols_to_remove <- colSums(is.na(mt)) == nrow(mt)
-  na_markers <- c(which(cols_to_remove))
-  
-  if (length(na_markers) > 0) {
-    na_message <- paste0("From ", dim(mt)[2], "loci, ",
-                         length(na_markers), " have complete missing data, removed.")
-    print_log_message(na_message)
-    mt <- mt[, !cols_to_remove]
-  }
-  
-  # Create loci IDs from chromosome and position
-  loci <- paste0(meta_vcf[!cols_to_remove, "CHROM"], "_", meta_vcf[!cols_to_remove, "POS"])
   individuals <- rownames(mt)
-  non_biallelic <- c()
-  alleles_list <- c()
   
-  for (i in 1:dim(mt)[2]) {
-    v1 <- mt[, i]
-    allele_count <- get_alleles_count_char(v1, ploidity = ploidity, sep = '/')
-    
-    v <- paste(v1, collapse = " ")
-    v <- gsub('/', "", v)
-    v <- unlist(strsplit(v, " "))
-    # If the marker is not bi-allelic, add it to the non_biallelic vector
-    if (length(names(allele_count)) != 2) {
-      non_biallelic <- c(i, non_biallelic)
-    } else {
-      mt[,i] <- get_allelic_dosage(v, allele_count, ploidity)
-      alleles_str <- paste(names(allele_count), collapse = "/")
-      alleles_list <- c(alleles_list, alleles_str)
-    }
-  }
-
-  if (length(non_biallelic) > 0) {
-    bi_message <- paste0("From ", dim(mt)[2], "loci, ",
-                         length(non_biallelic), " aren't bi-allelic")
-    
-    # Remove non-biallelic and markers with missing data
-    non_biallelic_na <- c(non_biallelic, na_markers)
-    
-    # Create the genlight object with the remaining markers
-    gl <- new("genlight",
-              mt[, -c(non_biallelic)],
-              ploidy = ploidity,
-              loc.names = loci[-c(non_biallelic)],
-              ind.names = individuals,
-              chromosome = meta_vcf[-c(non_biallelic_na), "CHROM"],
-              position = as.numeric(meta_vcf[-c(non_biallelic_na), "POS"]))
-    adegenet::alleles(gl) <- alleles_list
-  } else {
-    bi_message <- "Data confirmed bi-allelic"
-    
-    # Create the genlight object with all markers
-    gl <- new("genlight",
-              mt,
-              ploidy = ploidity,
-              loc.names = loci[-c(na_markers)],
-              ind.names = individuals,
-              chromosome = meta_vcf[-c(na_markers), "CHROM"],
-              position = meta_vcf[-c(na_markers), "POS"])
-    adegenet::alleles(gl) <- alleles_list
-  }
-  print_log_message(bi_message)
-  gl <- recalc_metrics(gl)
-  return(gl)
+  allele_set <- paste(meta$ref[!meta$filter], meta$alt[!meta$filter], sep='/')
+  gt <- mapply(function(col, arg, ploidity, sep) get_allelic_dosage(mt[,col], arg,ploidity,sep),
+               col = seq(1,dim(mt)[2]), 
+               arg = allele_set,
+               ploidity = ploidity,
+               sep = "/")
+  
+  gl <- new("genlight",
+            gt,
+            ploidy = ploidity,
+            loc.names = meta$id[!meta$filter],
+            ind.names = individuals,
+            chromosome = meta$chrom[!meta$filter],
+            position = meta$pos[!meta$filter])
+  adegenet::alleles(gl) <- allele_set
+  gl_recalc <- recalc_metrics(gl)
+  return(gl_recalc)
 }
 
 
@@ -237,52 +180,8 @@ read_DArTSeq_SNP <- function(dart_path, snp_id, chr_name, pos_name) {
   
   gl_recalc <- recalc_metrics(gl)
   return(gl_recalc)
+  
 }
-
-#' Read a DArTSeq Presence/Absence file
-#'
-#' This function reads a DArTSeq Presence/Absence (PA) dataset from a CSV file and converts it into a genlight object using
-#' the DartR library reading functions.
-#'
-#' @param dart_path String, Path to the DArTSeq PA CSV file.
-#' @param marker_id String, Column name in the CSV file that represents the marker ID.
-#' @param chr_name String, Column name in the CSV file that represents the chromosome name.
-#' @param pos_name String, Column name in the CSV file that represents the physical position.
-#'
-#' @return A genlight object.
-#' @export
-#'
-#' @examples
-#' read_DArTSeq_PA("path/to/dartseq/pa/file.csv", marker_id = "MarkerID", chr_name = "Chr", pos_name = "Position")
-read_DArTSeq_PA <- function(dart_path, marker_id, chr_name, pos_name) {
-  # Read the DArTSeq PA CSV file
-  gl <- dartR::gl.read.silicodart(dart_path)
-  
-  # DArTSeq stores position and chromosome information in the 'other' slot
-  # It is necessary to modify it to be compatible with the native genlight object
-  pos <- c(gl@other$loc.metrics[, pos_name])
-  chrom <- c(gl@other$loc.metrics[, chr_name])
-  
-  # Remove markers where the tag is unmapped (no position data)
-  no_pos <- which(is.na(pos) | pos <= 0)
-  no_chrom <- which(is.na(chrom))
-  no_loc <- unique(c(no_pos, no_chrom))
-  
-  message <- paste("Were detected:",
-                   length(no_loc),
-                   "SNPs without position data, removed.")
-  print_log_message(message)
-  
-  # Remove markers without position data
-  gl <- gl[, -c(no_loc)]
-  
-  # Assign the position and chromosome information to the genlight object
-  adegenet::position(gl) <- gl@other$loc.metrics[-c(no_loc), pos_name]
-  adegenet::chromosome(gl) <- gl@other$loc.metrics[-c(no_loc), chr_name]
-  
-  return(gl)
-}
-
 #' Read a DArTTag file
 #'
 #' This function reads a DArTTag report (counts and dosage CSV files) and converts it into a genlight object.
