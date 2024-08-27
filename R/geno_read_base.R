@@ -1,7 +1,3 @@
-library(dplyr)
-library(stringr)
-library(purrr)
-
 process_metadata <- function(geno_metadata){
   # Expected fields id Chrom pos ref alt
   meta_columns <- c('id', 'chrom', 'pos', 'ref', 'alt')
@@ -106,7 +102,7 @@ process_metadata <- function(geno_metadata){
 #' allele_counts <- c(A = 10, G = 20)
 #' get_allelic_dosage(genotypes, allele_counts, 2)  # Returns list(1, NA, 0)
 get_allelic_dosage <- function(l, alleles, ploidity, sep = "") {
-  alleles_c <- unlist(str_split(alleles, "/"))
+  alleles_c <- unlist(stringr::str_split(alleles, "/"))
   # All possible genotype calls
   possible_gt_calls <- get_all_gt_calls(alleles_c, ploidity, sep)
   # Get dosage given the alternative allele

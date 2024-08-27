@@ -1,6 +1,4 @@
-importFrom("grDevices", "dev.cur", "dev.new", "dev.next", "dev.set")
-importFrom("graphics", "axis", "lines", "par", "points", "title")
-importFrom("stats", "cov", "dist", "median", "model.matrix", "optimize", "pbeta", "ppoints", "predict", "smooth.spline","var")
+import(adegenet, dplyr, purrr,vcfR, dartR, stringr)
 export(read_hapmap, read_vcf, read_DArTSeq_SNP,
        read_DArT_Tag,
        get_ind_missing, get_loc_missing,

@@ -211,3 +211,5 @@ read_DArT_Tag <- function(counts.file, dosage.file, ploidity = 4, na_reps = c(".
   
   return(gl)
 }
+
+
