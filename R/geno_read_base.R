@@ -137,7 +137,12 @@ get_allelic_dosage <- function(l, alleles, ploidity, sep = "") {
 get_all_gt_calls <- function(alleles, ploidity, sep = "") {
   generate_calls <- function(prefix, ploidity, del = sep) {
     if (ploidity == 0) {
-      out <- substr(prefix, 1, nchar(prefix) - 1)
+      if(nchar(sep) > 0){
+        out <- substr(prefix, 1, nchar(prefix)-1)  
+      } else {
+        out <- substr(prefix, 1, nchar(prefix))  
+      }
+      
       return(out)
     }
     calls <- c()

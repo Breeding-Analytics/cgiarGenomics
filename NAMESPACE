@@ -1,4 +1,10 @@
-import(adegenet, dplyr, purrr,vcfR, dartR, stringr)
+import(adegenet)
+import(dplyr)
+import(purrr)
+import(vcfR)
+import(dartR)
+import(stringr)
+
 export(read_hapmap, read_vcf, read_DArTSeq_SNP,
        read_DArT_Tag,
        get_ind_missing, get_loc_missing,
