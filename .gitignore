@@ -47,3 +47,8 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+tmp.vcf.gz
+scheme/
+cgiarGenomics.wiki/
+tests/*.R
