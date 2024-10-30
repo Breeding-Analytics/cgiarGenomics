@@ -12,6 +12,6 @@ Imports:vcfR, adegenet, dartR,
   dplyr, ggplot2, stringr, purrr
 Suggests: parallel
 Remotes:
-    github::jendelman/polyBreedR
+    github::jendelman/polyBreedR,
     bioc::3.19/SNPRelateH
 
