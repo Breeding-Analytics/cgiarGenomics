@@ -7,8 +7,12 @@
 #' @export
 #'
 #' @examples
-read_tabular_geno <- function(path, sep = '\t'){
-  # missing data representation values
+read_tabular_geno <- function(path, sep = c('\t',',')){
+  
+  # Validate params
+  sep = match.arg(sep)
+  
+  # Missing data representation values
   missingData = c("N","NN","FAIL","FAILED","Uncallable","Unused","-","NA","",-9)
 
   df <- as.data.frame(data.table::fread(path,

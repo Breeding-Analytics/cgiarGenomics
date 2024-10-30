@@ -15,17 +15,26 @@
 #' read_hapmap("path/to/hapmap/file.txt")
 #' read_hapmap("path/to/hapmap/file.txt", ploidity = 4)
 #' read_hapmap("path/to/hapmap/file.txt", sep = "|")
-read_hapmap <- function(path, ploidity = 2, sep = "") {
+read_hapmap <- function(path, ploidity = 2, sep = c("","/","|")) {
+  # Validate arguments
+  if (!file.exists(path)){
+    cli::cli_abort("`path` don't exist. Verify if is writed properly {path}")
+  }
+  if (!rlang::is_integerish(ploidity)) {
+    cli::cli_abort("`ploidity` must be a round number not {ploidity}")
+  }
+  sep = match.arg(sep)
+  
+  
   # Read the genotype data from the tabular file
   table <- read_tabular_geno(path)
   
   # Define the expected column names for the hapmap file
   hapmap_snp_attr <- c('rs#', 'alleles', 'chrom', 'pos')
   
-  # Check if the first 11 columns in the input file match the expected column names
+  # Check if the first 4 columns in the input file match the expected column names
   if (length(intersect(hapmap_snp_attr, colnames(table)[1:4])) != 4) {
-    print_log_message("Hapmap file doesn't have the standard column names")
-    stop()
+    cli::cli_abort("Hapmap file doesn't have  first four standard column names: {hapmap_snp_attr}, have: {colnames(table)[1:4]}")
   }
   
   nrows <- dim(table)[1]
@@ -41,18 +50,19 @@ read_hapmap <- function(path, ploidity = 2, sep = "") {
     ncols - length(hapmap_snp_attr), " Individuals, confirming first 5:\n",
     paste(individuals[1:5], collapse = " ")
   )
-  print_log_message(int_message)
+  
+  cli::cli_inform(int_message)
   
   # Check if individual labels and loci IDs are unique
   if (length(unique(individuals)) != length(individuals)) {
-    cat(error("Fatal Error: Individual labels are not unique, check and edit your input file\n"))
-    stop()
+    cli::cli_abort("Fatal Error: Individual labels are not unique, check and edit your input file\n")
   }
   
-  # Metadata processing
+  # Metadata processing, get the first allele as reference and the remaining
+  # as alternative
   meta <- table[1:11] %>% 
-    mutate(ref = str_split(alleles, '/', simplify = TRUE)[,1],
-           alt = map_chr(str_split(alleles, '/'), ~ paste(.x[-1], collapse = ","))) %>% 
+    mutate(ref = stringr::str_split(alleles, '/', simplify = TRUE)[,1],
+           alt = purrr::map_chr(stringr::str_split(alleles, '/'), \(.x) paste(.x[-1], collapse = ","))) %>% 
     mutate(alt = na_if(alt, "")) %>% 
     select('rs#', chrom, pos, ref, alt) %>% 
     rename(id = 'rs#')
@@ -95,6 +105,13 @@ read_hapmap <- function(path, ploidity = 2, sep = "") {
 #' read_vcf("path/to/vcf/file.vcf", ploidity = 2)
 #' read_vcf("path/to/vcf/file.vcf.gz", ploidity = 4, na_reps = c("-", "./."))
 read_vcf <- function(path, ploidity = 2, na_reps = c("-", "./.")) {
+  
+  if (!file.exists(path)){
+    cli::cli_abort("`path` don't exist. Verify if is writed properly {path}")
+  }
+  if (!rlang::is_integerish(ploidity)) {
+    cli::cli_abort("`ploidity` must be a round number not {ploidity}")
+  }
   # Read the VCF file
   vcf <- vcfR::read.vcfR(path)
   
@@ -143,7 +160,7 @@ read_vcf <- function(path, ploidity = 2, na_reps = c("-", "./.")) {
 #' This function reads a DArTSeq SNP dataset from a CSV file and converts it into a genlight object using
 #' the DartR library reading functions.
 #'
-#' @param dart_path Path to the DArTSeq CSV file.
+#' @param path Path to the DArTSeq CSV file.
 #' @param snp_id Column name of the SNP ID data in the CSV file.
 #' @param chr_name Column name of the chromosome where the SNP is located in the CSV file.
 #' @param pos_name Column name of the physical position where the SNP is located in the CSV file.
@@ -153,9 +170,29 @@ read_vcf <- function(path, ploidity = 2, na_reps = c("-", "./.")) {
 #'
 #' @examples
 #' read_DArTSeq_SNP("path/to/dartseq/file.csv", snp_id = "SnpID", chr_name = "Chr", pos_name = "Position")
-read_DArTSeq_SNP <- function(dart_path, snp_id, chr_name, pos_name) {
+read_DArTSeq_SNP <- function(path, snp_id, chr_name, pos_name) {
+  if (!file.exists(path)){
+    cli::cli_abort("`path` don't exist. Verify if is writed properly {path}")
+  }
+  
   # Read the DArTSeq CSV file
-  gl <- dartR::gl.read.dart(dart_path)
+  gl <- dartR::gl.read.dart(path)
+  
+  
+  
+  
+  if(!hasName(gl@other$loc.metrics, snp_id)){
+    cli::cli_abort("The input snp_id: {snp_id} column doesn't exist in the dartSeq file")
+  }
+  
+  if(!hasName(gl@other$loc.metrics, chr_name)){
+    cli::cli_abort("The input chr_name: {chr_name} column doesn't exist in the dartSeq file")
+  }
+  
+  if(!hasName(gl@other$loc.metrics, pos_name)){
+    cli::cli_abort("The input pos_name: {pos_name} column doesn't exist in the dartSeq file")
+  }
+  
   # DArTSeq stores position and chromosome information in the 'other' slot
   # It is necessary to modify it to be compatible with the native genlight object
   pos <- c(gl@other$loc.metrics[, pos_name])
@@ -166,10 +203,10 @@ read_DArTSeq_SNP <- function(dart_path, snp_id, chr_name, pos_name) {
   no_chrom <- which(is.na(chrom))
   no_loc <- unique(c(no_pos, no_chrom))
   
-  message <- paste("Were detected:",
-                   length(no_loc),
-                   "SNPs without position data, removed.")
-  print_log_message(message)
+  if(length(no_loc) > 0){
+    cli::cli_inform("Were detected {length(no_loc)} \n
+                    SNPs withoud position data, removed.")
+  }
   
   # Remove SNPs without position data
   gl <- gl[, -c(no_loc)]
@@ -195,7 +232,7 @@ read_DArTSeq_SNP <- function(dart_path, snp_id, chr_name, pos_name) {
 #'
 #' @return A genlight object.
 #' @export
-#'s
+#'
 #' @examples
 #' read_DArT_Tag("path/to/counts.csv", "path/to/dosage.csv")
 #' read_DArT_Tag("path/to/counts.csv", "path/to/dosage.csv", ploidity = 2, na_reps = c("-", "./."))

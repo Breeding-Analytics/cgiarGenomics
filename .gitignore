@@ -48,5 +48,5 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 
-*.vcf
-*.vcf.gz
+./*.vcf
+./*.vcf.gz

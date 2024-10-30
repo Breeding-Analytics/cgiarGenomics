@@ -4,32 +4,39 @@ process_metadata <- function(geno_metadata){
   
   # Check if the columns in the input file match the expected column names
   if (length(intersect(meta_columns, colnames(geno_metadata))) != 5) {
-    print_log_message("metadata file doesn't have the expected column names")
-    stop()
+    cli::cli_abort("metadata file doesn't have the expected column names,
+                   have: {colnames(geno_metadata)}")
   }
-  # Initialize the filter column
+  
   geno_metadata['filter'] <- FALSE
   
-  # Keep markers with chrom and pos data
+  # Flag markers with physical location
   geno_usable_idx <- which(!complete.cases(geno_metadata[,c('chrom','pos')]),)
   geno_metadata[geno_usable_idx,'filter'] <- TRUE
   no_pos <- length(geno_usable_idx)
   
-  print_log_message(paste("Were found",
-                          no_pos, "markers without physicall position data, flaged."))
+  if (no_pos > 0){
+    cli::cli_inform("Were found {no_pos} markers
+                   without physicall location, flaged")
+  }
   
+  # Flag colocalized markers
   
   dup_pos_idx <- which(duplicated(geno_metadata[,c('chrom','pos')]))
   no_dup_pos <- length(dup_pos_idx)
-  print_log_message(paste("Were found",
-                          no_dup_pos, "markers with duplicated position data, flaged."))
-  geno_metadata[dup_pos_idx,'filter'] <- TRUE
+  if (no_dup_pos > 0 ){
+    cli::cli_inform("Were found {no_dup_pos} markers with duplicated position")
+    geno_metadata[dup_pos_idx,'filter'] <- TRUE
+  }
   
   # Check duplicated ids
   id_dup = duplicated(geno_metadata['id'])
-    print_log_message(paste("Were found",
-                          sum(id_dup), "markers with duplicated id, using the chrom_pos nomenclature"))
-    
+  
+  if(sum(id_dup) > 0){
+    cli::cli_inform("Were found {sum(id_dup)} markers with duplicated id. \n
+                  Renamed with chrom_pos nomenclature")  
+  }
+  
   geno_metadata <- geno_metadata %>%
     mutate(
       id = if_else(row_number() %in% id_dup,  paste0(chrom, "_", pos), id),
@@ -41,18 +48,22 @@ process_metadata <- function(geno_metadata){
   # Flag no reference alleles
   ref_alt_na_idx <- which(is.na(geno_metadata['ref']) & is.na(geno_metadata['alt']))
   no_ref_alt <- length(ref_alt_na_idx)
-
-  print_log_message(paste("Were found",
-                          no_ref_alt, "markers without ref and alt allele data",))
   
-  geno_metadata[ref_alt_na_idx,'filter'] <- TRUE
+  if(no_ref_alt > 0){
+    cli::cli_inform("Were found {no_ref_alt} without ref and alt allele data")
+    geno_metadata[ref_alt_na_idx,'filter'] <- TRUE
+  }
   
-  # flag multiallelic 
+  
+    # flag multiallelic 
   multi_allelic_idx <- which(geno_metadata['allele_count'] > 1)
   multi_allelic <- length(multi_allelic_idx)
-  print_log_message(paste("Were found",
-                          multi_allelic, "multi-allelic markers, flaged."))
-  geno_metadata[multi_allelic_idx,'filter'] <- TRUE
+  
+  if(multi_allelic > 0){
+    cli::cli_warn("Were found {multi_allelic} multi-allelic markers")
+    geno_metadata[multi_allelic_idx,'filter'] <- TRUE
+  }
+
   # flag indels
   
   indel_idx <- which(geno_metadata['ref_len'] > 1)
@@ -60,9 +71,12 @@ process_metadata <- function(geno_metadata){
   
   
   indel <- length(indel_idx)
-  print_log_message(paste("Were found",
-                          indel, "indel markers "))
-  geno_metadata[indel_idx,'filter'] <- TRUE
+  
+  if(indel > 0){
+    cli::cli_inform("Were found {indel} indel markers")
+    geno_metadata[indel_idx,'filter'] <- TRUE
+  }
+  
   return(geno_metadata)
 }
 

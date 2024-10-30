@@ -13,3 +13,5 @@ Imports:vcfR, adegenet, dartR,
 Suggests: parallel
 Remotes:
     github::jendelman/polyBreedR
+    bioc::3.19/SNPRelateH
+

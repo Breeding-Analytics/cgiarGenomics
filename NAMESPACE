@@ -1,10 +1,11 @@
 import(adegenet)
 import(dplyr)
+importFrom(dplyr, "%>%")
 import(purrr)
 import(vcfR)
 import(dartR)
 import(stringr)
-
+importFrom(polyBreedR, dart2vcf)
 export(read_hapmap, read_vcf, read_DArTSeq_SNP,
        read_DArT_Tag,
        get_ind_missing, get_loc_missing,
