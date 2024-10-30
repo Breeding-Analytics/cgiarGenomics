@@ -1,13 +1,23 @@
-importFrom("grDevices", "dev.cur", "dev.new", "dev.next", "dev.set")
-importFrom("graphics", "axis", "lines", "par", "points", "title")
-importFrom("stats", "cov", "dist", "median", "model.matrix", "optimize", "pbeta", "ppoints", "predict", "smooth.spline","var")
+import(adegenet)
+import(dplyr)
+importFrom(dplyr, "%>%")
+import(purrr)
+import(vcfR)
+import(dartR)
+import(stringr)
+importFrom(polyBreedR, dart2vcf)
 export(read_hapmap, read_vcf, read_DArTSeq_SNP,
-       read_DArTSeq_PA, read_DArT_Tag,
+       read_DArT_Tag,
        get_ind_missing, get_loc_missing,
        get_overall_missingness, get_heterozygosity_metrics,
-       filter_monomorphic, filter_missing_rate_by_marker,
-       filter_missing_rate_by_indv, filter_MAF,
-       get_loc_het, get_ind_het, get_loc_missing, get_ind_missing,
-       get_maf, plot_missingnes_by_marker, plot_MAF, plot_overall_missingness)
+       get_maf, get_loc_heterozygosity,
+       get_ind_heterozygosity, recalc_metrics,
+       filter_missing_rate_by_indv,
+       filter_missing_rate_by_marker,
+       filter_MAF,
+       filter_heterozygosis_by_loc,
+       filter_heterozygosis_by_ind,
+       get_overall_summary
+       )
 
 

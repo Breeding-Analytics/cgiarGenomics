@@ -23,7 +23,7 @@ get_loc_missing <- function(gl) {
   NA_counts <- adegenet::glNA(gl)
   
   # Divide the NA counts by the total number of samples to get the missing rate
-  NA_counts <- NA_counts / adegenet::nInd(gl)
+  NA_counts <- NA_counts / adegenet::nInd(gl)/max(adegenet::ploidy(gl))
   
   return(NA_counts)
 }
@@ -97,12 +97,59 @@ get_heterozygosity_metrics <- function(gl, ploidy = 2){
   return(list(het_ind = het_ind, het_loc = het_loc))
 }
 
+get_loc_heterozygosity <- function(gl, ploidy = 2){
+  mt <- as.matrix(gl)
+  het_ind_loc <- mt > 0 & mt < ploidy
+  het_loc <- colSums(het_ind_loc , na.rm = T)/adegenet::nInd(gl)
+  return(het_loc)
+}
+
+get_ind_heterozygosity <- function(gl, ploidy = 2){
+  mt <- as.matrix(gl)
+  het_ind_loc <- mt > 0 & mt < ploidy
+  het_ind <- rowSums(het_ind_loc , na.rm = T)/adegenet::nLoc(gl)
+  return(het_ind)
+}
+
+
 get_maf <- function(gl){
   maf <- adegenet::glMean(gl)*(1/2)
   return(maf)
 }
 
+recalc_metrics <- function(gl){
 
+  gl@other$loc.metrics <- data.frame(
+    maf = get_maf(gl),
+    loc_miss = get_loc_missing(gl),
+    loc_het = get_loc_heterozygosity(gl, max(adegenet::ploidy(gl)))
+  )
+  
+  
+  gl@other$ind.metrics <- data.frame(
+                                     ind_miss = get_ind_missing(gl),
+                                     ind_het = get_ind_heterozygosity(gl, max(adegenet::ploidy(gl)))
+                                     )
+  return(gl)
+}
+
+
+get_overall_summary <- function(gl){
+  ninds <- adegenet::nInd(gl)
+  nlocs <- adegenet::nLoc(gl)
+  overall_missiness <- mean(gl@other$ind.metrics$ind_miss)
+  overall_heterozygosity <- mean(gl@other$ind.metrics$ind_het)
+  overall_maf <- mean(gl@other$loc.metrics$maf)
+  
+  out <- list(
+    nind = ninds,
+    nloc = nlocs,
+    ov_miss = overall_missiness,
+    ov_het = overall_heterozygosity,
+    ov_maf = overall_maf
+  )
+  return(out)
+}
 
 
 
