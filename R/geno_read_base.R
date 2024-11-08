@@ -1,3 +1,12 @@
+#' @param geno_metadata Dataframe with the expected columns id, chrom, pos, ref, alt
+#'
+#' @return Same input dataframe but added a `filter` column if true the marker don't meet
+#' the minimal requirements: no duplicated markers, physical position, bi-allelic, 
+#'  allelic information, SNP.
+#' @export
+#'
+#' @examples
+#' geno_metadata(meta_daya)
 process_metadata <- function(geno_metadata){
   # Expected fields id Chrom pos ref alt
   meta_columns <- c('id', 'chrom', 'pos', 'ref', 'alt')
@@ -46,7 +55,7 @@ process_metadata <- function(geno_metadata){
     ) 
   
   # Flag no reference alleles
-  ref_alt_na_idx <- which(is.na(geno_metadata['ref']) & is.na(geno_metadata['alt']))
+  ref_alt_na_idx <- which(is.na(geno_metadata['ref_len']) | is.na(geno_metadata['alt_len']))
   no_ref_alt <- length(ref_alt_na_idx)
   
   if(no_ref_alt > 0){

@@ -219,34 +219,277 @@ read_DArTSeq_SNP <- function(path, snp_id, chr_name, pos_name) {
   return(gl_recalc)
   
 }
-#' Read a DArTTag file
+
+#' extract_dart_gt
 #'
-#' This function reads a DArTTag report (counts and dosage CSV files) and converts it into a genlight object.
-#' It first converts the DArTTag report to a VCF file using the polyBreedR library, and then reads the VCF file
-#' into a genlight object using the read_vcf function.
+#' @param data Dataframe. Dataframe with Allelic dosage data
+#' @param sample.name.row Integer. Row number which the sample names are (default = 2)
+#' @param first.data.row Integer. Row number of the first genotype call
+#' @param first.data.col Integer. Col number of the first genotype call
 #'
-#' @param counts.file String. Path to the DArTTag counts CSV file.
-#' @param dosage.file String. Path to the DArTTag dosage CSV file.
-#' @param ploidity Integer, ploidity level of the organism (default: 4).
-#' @param na_reps Vector. A vector containing the NA representations of genotype calls (default: ".").
-#'
-#' @return A genlight object.
+#' @return Dataframe. Returns a Dataframe with the allelic dosage data converted
+#' to integers and the column names as the samples.
 #' @export
 #'
 #' @examples
-#' read_DArT_Tag("path/to/counts.csv", "path/to/dosage.csv")
-#' read_DArT_Tag("path/to/counts.csv", "path/to/dosage.csv", ploidity = 2, na_reps = c("-", "./."))
-read_DArT_Tag <- function(counts.file, dosage.file, ploidity = 4, na_reps = c(".")) {
-  # Convert the DArTTag report to a VCF file
-  polyBreedR::dart2vcf(counts.file = counts.file,
-                       dosage.file = dosage.file,
-                       ploidy = ploidity,
-                       vcf.file = "tmp.vcf.gz")
+extract_dart_gt <- function(data,
+                            sample.name.row= 2,
+                            first.data.row = 9,
+                            first.data.col=6){
   
-  # Read the VCF file into a genlight object
-  gl <- read_vcf("tmp.vcf.gz", ploidity = ploidity, na_reps = na_reps)
+  if (!is.data.frame(data)) {
+    cli::cli_abort("`sample.name.row` must be a round number not {sample.name.row}")
+  }
+  if (!rlang::is_integerish(sample.name.row)) {
+    cli::cli_abort("`sample.name.row` must be a round number not {sample.name.row}")
+  }
+  if (!rlang::is_integerish(first.data.row)) {
+    cli::cli_abort("`first.data.row` must be a round number not {first.data.row}")
+  }
+  if (!rlang::is_integerish(first.data.col)) {
+    cli::cli_abort("`first.data.col` must be a round number not {first.data.col}")
+  }
   
+  # rows with data
+  rows <- first.data.row:nrow(data)
+  cols <- first.data.col:ncol(data)
+  # sample names
+  id <- as.character(data[sample.name.row,cols])
+  # Samples with duplicated id?
+  dupes <- unique(id[which(duplicated(id))])
+  if(length(dupes)>0){
+    cli::cli_abort("The samples: {dupes} are duplicated, fix it.")
+  }
+  out_data <- data[rows, cols]
+  colnames(out_data) <- id
+  return(out_data)
+}
+
+#' read_one_row_dart_gt_data
+#' 
+#' This function takes as input a path a DArT file where each variant is coded
+#' in a single line. It splits the metadata and the allelic dosages.
+#'
+#' @param path 
+#' @param sample.name.row 
+#' @param first.data.row 
+#' @param first.data.col 
+#' @param snp_id_col 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+read_one_row_dart_gt_data <- function(path,
+                                      sample.name.row= 2,
+                                      first.data.row = 9,
+                                      first.data.col=6,
+                                      snp_id_col){
+  if (!file.exists(path)){
+    cli::cli_abort("`path` don't exist. Verify if is writed properly {path}")
+  }
+  
+  data_raw <- read.csv(path, header=F, check.names=F)
+  data <- extract_dart_gt(data_raw,
+                          sample.name.row,
+                          first.data.row,
+                          first.data.col)
+  
+  
+  # Markers with duplicated id
+  meta_data <- data_raw[first.data.row:nrow(data_raw), 1:first.data.col-1]
+  colnames(meta_data) <- data_raw[first.data.row-1, 1:first.data.col-1]
+  
+  if(!hasName(meta_data, snp_id_col)){
+    cli::cli_abort("The input `snp_id_col`: {snp_id_col} column doesn't exist in the file")
+  }
+  
+  marker_ids <- as.vector(unlist(meta_data[snp_id_col]))
+  l_dupes <- unique(marker_ids[which(duplicated(marker_ids))])
+  
+  geno <- apply(data,2,as.integer)
+  
+  geno <- as.data.frame(geno)
+  geno$marker_id <- marker_ids
+  
+  return(list(gt = geno, dosage_meta = meta_data))
+}
+
+parse_counts_metadata <- function(path,
+                                  sample.name.row= 7,
+                                  first.data.row = 9,
+                                  first.data.col=6,
+                                  snp_id_col = 'CloneID',
+                                  allele_id_col = 'AlleleID',
+                                  allele_sep = "\\|",
+                                  allele_sequence_col = 'AlleleSequence',
+                                  ref_name = 'Ref',
+                                  alt_name = 'Alt'){
+  
+  data_raw <- read.csv(path, header=F, check.names=F)
+  
+  meta_data <- data_raw[first.data.row:nrow(data_raw), 1:first.data.col-1]
+  colnames(meta_data) <- data_raw[first.data.row-1, 1:first.data.col-1]
+  
+  if(!hasName(meta_data, snp_id_col)){
+    cli::cli_abort("The input `snp_id_col`: {snp_id_col} column doesn't exist in the file")
+  }
+  if(!hasName(meta_data, allele_id_col)){
+    cli::cli_abort("The input `allele_id_col`: {allele_id_col} column doesn't exist in the file")
+  }
+  if(!hasName(meta_data, allele_sequence_col)){
+    cli::cli_abort("The input `allele_sequence_col`: {allele_sequence_col} column doesn't exist in the file")
+  }
+  
+  meta_data <- meta_data %>% 
+    mutate(allele_type = stringr::str_split_fixed(!!sym(allele_id_col), allele_sep, 2)[, 2])
+  
+  # Wider the metadata table
+  meta_data_wide <- meta_data %>% 
+    select(!!sym(snp_id_col),
+           !!sym(allele_sequence_col),
+           allele_type) %>% 
+    tidyr::pivot_wider(
+      id_cols = !!sym(snp_id_col),
+      names_from = allele_type,
+      values_from = !!sym(allele_sequence_col)
+    )
+  
+  alleles <- purrr::map2_dfr(as.vector(unlist(meta_data_wide[,ref_name])),
+                             as.vector(unlist(meta_data_wide[,alt_name])),
+                             \(.x,.y) compare_tags(.x, .y))
+  
+  wide_alleles <- cbind(meta_data_wide, alleles)
+  
+  
+  return(wide_alleles)
+}
+
+read_DArTag_count_dosage <- function(dosage_path,
+                                     counts_path,
+                                     ploidity,
+                                     sample.name.row = 7,
+                                     first.data.row = 9,
+                                     first.data.col = 6,
+                                     snp_id_col_dosage = 'MarkerID',
+                                     snp_id_col_count = 'CloneID',
+                                     allele_id_col = 'AlleleID',
+                                     allele_sep = "\\|",
+                                     allele_sequence_col = 'AlleleSequence',
+                                     ref_name = 'Ref',
+                                     alt_name = 'Alt',
+                                     dosage_col_chr = 'Chrom',
+                                     dosage_col_pos = 'ChromPos'){
+  
+  if (!file.exists(dosage_path)){
+    cli::cli_abort("`dosage_path` don't exist. Verify if is writed properly {dosage_path}")
+  }
+  if (!file.exists(counts_path)){
+    cli::cli_abort("`counts_path` don't exist. Verify if is writed properly {counts_path}")
+  }
+  # Parse metadata (Allele sequences)
+  meta_data <- parse_counts_metadata(
+    counts_path,
+    sample.name.row,
+    first.data.row,
+    first.data.col,
+    snp_id_col_count,
+    allele_id_col,
+    allele_sep,
+    allele_sequence_col,
+    ref_name,
+    alt_name)
+  
+  # Parse genotype call information
+  dosage_data <- read_one_row_dart_gt_data(
+    dosage_path, 
+    sample.name.row,
+    first.data.row,
+    first.data.col,
+    snp_id_col_dosage)
+  
+  gt <- dosage_data$gt
+  
+  dosage_meta <- dosage_data$dosage_meta
+  
+  if(!hasName(dosage_meta, dosage_col_chr)){
+    cli::cli_abort("The input `dosage_col_chr`: {dosage_col_chr} column doesn't exist in the file")
+  }
+  if(!hasName(dosage_meta, dosage_col_pos)){
+    cli::cli_abort("The input `dosage_col_pos`: {dosage_col_pos} column doesn't exist in the file")
+  }
+  
+  
+  dosage_meta[,dosage_col_pos] <- as.integer(dosage_meta[,dosage_col_pos])
+  
+  # Check if markers reported in dosage are in counts 
+  
+  orphan_snps <- which(!gt$marker_id %in% meta_data[, snp_id_col_count])
+  if(length(orphan_snps) > 0){
+    cli::cli_warn("The markers: {gt$marker_id[orphan_snps]} without Allele sequence data, removed.")
+  }
+  
+  
+  merged_data <- merge(gt, meta_data,
+                       by.x = "marker_id",
+                       by.y = snp_id_col_count)
+  
+  
+  
+  merged_data <- merge(merged_data, dosage_meta,
+                       by.x = "marker_id",
+                       by.y = snp_id_col_dosage)
+  
+  
+  nrows <- dim(gt)[1]
+  ncols <- dim(gt)[2]
+  individuals <- colnames(gt)[which(colnames(gt) != "marker_id")]
+  
+  
+  loci <- paste0(c(merged_data[1:5,dosage_col_chr]), "_", c(merged_data[1:5,dosage_col_pos]))
+  
+  report_bullets <- cli::cli_bullets(c("Input data should have loci as rows and individuals as columns.",
+                                       "i" = "{nrows} Loci, first 5: {loci}",
+                                       "i" = "{length(individuals)} Individuals, first 5: {individuals[1:5]}"))
+  
+  cli::cli_inform(report_bullets)
+  
+  # Metadata processing, get the first allele as reference and the remaining
+  # as alternative
+  meta <- merged_data[,c('marker_id', dosage_col_chr, dosage_col_pos, 'ref_allele', 'alt_allele')]
+  colnames(meta) <- c('id', 'chrom', 'pos', 'ref', 'alt')
+  
+  
+  meta <- process_metadata(meta)
+  
+  # Read marker columns and transpose to obtain samples x snps
+  mt <- t(merged_data[!meta$filter, individuals])
+  allele_set <- paste(meta$ref[!meta$filter], meta$alt[!meta$filter], sep='/')
+  
+  gl <- new("genlight",
+            mt,
+            ploidy = ploidity,
+            loc.names = meta$id[!meta$filter],
+            ind.names = individuals,
+            chromosome = meta$chrom[!meta$filter],
+            position = meta$pos[!meta$filter])
+  adegenet::alleles(gl) <- allele_set
+  gl_recalc <- recalc_metrics(gl)
   return(gl)
+}
+
+compare_tags <- function(ref, alt){
+  bases <- c("A", "C", "G", "T")
+  hap.ref <- unlist(strsplit(ref, split = ""))
+  hap.alt <- unlist(strsplit(alt, split = ""))
+  k <- which(hap.ref != hap.alt & hap.ref %in% bases & 
+               hap.alt %in% bases)
+  if (length(k) == 1) {
+    return(c(ref_allele = hap.ref[k], alt_allele = hap.alt[k]))
+  }
+  else {
+    return(c(ref_allele = "N", alt_allele = "N"))
+  }
 }
 
 
