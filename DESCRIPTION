@@ -9,6 +9,7 @@ Description: Software for genomics applications
 Depends: R (>= 3.5.0)
 License: GPL (>= 2)
 Imports:vcfR, adegenet, dartR,
-  dplyr, ggplot2, stringr, purrr
+  dplyr, ggplot2, stringr, purrr, SNPRelate
 Suggests: parallel
-
+remotes:
+  bioc::3.19/SNPRelate
