@@ -5,9 +5,8 @@ import(purrr)
 import(vcfR)
 import(dartR)
 import(stringr)
-importFrom(polyBreedR, dart2vcf)
 export(read_hapmap, read_vcf, read_DArTSeq_SNP,
-       read_DArT_Tag,
+       read_DArTag_count_dosage,
        get_ind_missing, get_loc_missing,
        get_overall_missingness, get_heterozygosity_metrics,
        get_maf, get_loc_heterozygosity,
