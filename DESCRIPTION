@@ -11,5 +11,6 @@ License: GPL (>= 2)
 Imports:vcfR, adegenet, dartR,
   dplyr, ggplot2, stringr, purrr
 Suggests: parallel
-
+Remotes:
+    bioc::3.19/SNPRelate
 
