@@ -88,7 +88,7 @@ read_hapmap <- function(path, ploidity = 2, sep = c("","/","|")) {
             chromosome = meta$chrom[!meta$filter],
             position = meta$pos[!meta$filter])
   adegenet::alleles(gl) <- allele_set
-  gl_recalc <- recalc_metrics(gl)
+  gl <- recalc_metrics(gl)
   return(gl)
 }
 
@@ -153,8 +153,8 @@ read_vcf <- function(path, ploidity = 2, na_reps = c("-", "./."), sep="/") {
             chromosome = meta$chrom[!meta$filter],
             position = meta$pos[!meta$filter])
   adegenet::alleles(gl) <- allele_set
-  gl_recalc <- recalc_metrics(gl)
-  return(gl_recalc)
+  gl <- recalc_metrics(gl)
+  return(gl)
 }
 
 
@@ -218,8 +218,8 @@ read_DArTSeq_SNP <- function(path, snp_id, chr_name, pos_name) {
   adegenet::position(gl) <- gl@other$loc.metrics[, pos_name]
   adegenet::chromosome(gl) <- gl@other$loc.metrics[, chr_name]
   
-  gl_recalc <- recalc_metrics(gl)
-  return(gl_recalc)
+  gl <- recalc_metrics(gl)
+  return(gl)
   
 }
 
@@ -477,7 +477,7 @@ read_DArTag_count_dosage <- function(dosage_path,
             chromosome = meta$chrom[!meta$filter],
             position = meta$pos[!meta$filter])
   adegenet::alleles(gl) <- allele_set
-  gl_recalc <- recalc_metrics(gl)
+  gl <- recalc_metrics(gl)
   return(gl)
 }
 
