@@ -73,10 +73,12 @@ read_hapmap <- function(path, ploidity = 2, sep = c("","/","|")) {
   # Read marker columns and transpose to obtain samples x snps
   mt <- t(table[!meta$filter, c(12:dim(table)[2])])
   allele_set <- paste(meta$ref[!meta$filter], meta$alt[!meta$filter], sep='/')
-  gt <- mapply(function(col, arg, ploidity) get_allelic_dosage(mt[,col], arg,ploidity),
+
+  gt <- mapply(function(col, arg, ploidity, sep) get_allelic_dosage(mt[,col], arg,ploidity, sep),
                col = seq(1,dim(mt)[2]), 
                arg = allele_set,
-               ploidity = ploidity)
+               ploidity = ploidity,
+               sep = sep)
   
   gl <- new("genlight",
             gt,
@@ -104,7 +106,7 @@ read_hapmap <- function(path, ploidity = 2, sep = c("","/","|")) {
 #' @examples
 #' read_vcf("path/to/vcf/file.vcf", ploidity = 2)
 #' read_vcf("path/to/vcf/file.vcf.gz", ploidity = 4, na_reps = c("-", "./."))
-read_vcf <- function(path, ploidity = 2, na_reps = c("-", "./.")) {
+read_vcf <- function(path, ploidity = 2, na_reps = c("-", "./."), sep="/") {
   
   if (!file.exists(path)){
     cli::cli_abort("`path` don't exist. Verify if is writed properly {path}")
@@ -135,12 +137,13 @@ read_vcf <- function(path, ploidity = 2, na_reps = c("-", "./.")) {
   
   individuals <- rownames(mt)
   
-  allele_set <- paste(meta$ref[!meta$filter], meta$alt[!meta$filter], sep='/')
-  gt <- mapply(function(col, arg, ploidity, sep) get_allelic_dosage(mt[,col], arg,ploidity,sep),
+  allele_set <- paste(meta$ref[!meta$filter], meta$alt[!meta$filter], sep=sep)
+
+  gt <- mapply(function(col, arg, ploidity, sep) get_allelic_dosage(mt[,col], arg,ploidity, sep),
                col = seq(1,dim(mt)[2]), 
                arg = allele_set,
                ploidity = ploidity,
-               sep = "/")
+               sep = sep)
   
   gl <- new("genlight",
             gt,
