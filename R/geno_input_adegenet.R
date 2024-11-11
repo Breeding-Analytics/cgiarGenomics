@@ -104,8 +104,12 @@ read_hapmap <- function(path, ploidity = 2, sep = c("","/","|")) {
 #' @export
 #'
 #' @examples
-#' read_vcf("path/to/vcf/file.vcf", ploidity = 2)
-#' read_vcf("path/to/vcf/file.vcf.gz", ploidity = 4, na_reps = c("-", "./."))
+#' fl = "https://github.com/Breeding-Analytics/cgiarGenomics/raw/main/tests/vcf_fmt/diploid.vcf.gz"
+#' tempfl <- tempfile(pattern = 'diploid', fileext = '.vcf.gz')
+#' download.file(fl, destfile = tempfl)
+#' dat.dose.vcf = read_vcf(tempfl, ploidity = 2)
+#' print(dat.dose.vcf)
+#' plot(dat.dose.vcf)
 read_vcf <- function(path, ploidity = 2, na_reps = c("-", "./."), sep="/") {
   
   if (!file.exists(path)){
