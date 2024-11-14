@@ -6,14 +6,9 @@ Date: 2022-09-09
 Author: Sergio
 Maintainer: Sergio <s.cruz@cgiar.org>
 Description: Software for genomics applications
-Depends: R (>= 3.5.0), adegenet, dplyr, stringr
+Depends: R (>= 3.5.0), adegenet, dplyr, stringr, vcfR, dartR, ggplot2, purrr, SNPRelate
 License: GPL (>= 2)
-Imports:
-  vcfR,
-  dartR,
-  ggplot2,
-  purrr,
-  SNPRelate
+  
 Suggests: parallel
 remotes:
   bioc::3.19/SNPRelate
