@@ -64,7 +64,7 @@ read_hapmap <- function(path, ploidity = 2, sep = c("","/","|")) {
     dplyr::mutate(alt = purrr::map_chr(stringr::str_split(alleles, '/'), \(.x) paste(.x[-1], collapse = ",")),
            ref = stringr::str_split(alleles, '/', simplify = TRUE)[,1],
            ) %>% 
-    dplyr::mutate(alt = na_if(alt, "")) %>% 
+    dplyr::mutate(alt = dplyr::na_if(alt, "")) %>% 
     dplyr::select('rs#', chrom, pos, ref, alt) %>% 
     dplyr::rename(id = 'rs#')
   
