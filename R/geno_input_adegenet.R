@@ -61,12 +61,12 @@ read_hapmap <- function(path, ploidity = 2, sep = c("","/","|")) {
   # Metadata processing, get the first allele as reference and the remaining
   # as alternative
   meta <- table[1:11] %>% 
-    mutate(alt = purrr::map_chr(stringr::str_split(alleles, '/'), \(.x) paste(.x[-1], collapse = ",")),
+    dplyr::mutate(alt = purrr::map_chr(stringr::str_split(alleles, '/'), \(.x) paste(.x[-1], collapse = ",")),
            ref = stringr::str_split(alleles, '/', simplify = TRUE)[,1],
            ) %>% 
-    mutate(alt = na_if(alt, "")) %>% 
-    select('rs#', chrom, pos, ref, alt) %>% 
-    rename(id = 'rs#')
+    dplyr::mutate(alt = na_if(alt, "")) %>% 
+    dplyr::select('rs#', chrom, pos, ref, alt) %>% 
+    dplyr::rename(id = 'rs#')
   
   meta <- process_metadata(meta)
   
@@ -126,12 +126,12 @@ read_vcf <- function(path, ploidity = 2, na_reps = c("-", "./."), sep="/") {
   meta_vcf <- as.data.frame(vcfR::getFIX(vcf))
   
   meta <- meta_vcf %>% 
-    rename(id = ID,
+    dplyr::rename(id = ID,
            chrom = CHROM,
            pos = POS,
            ref = REF,
            alt = ALT) %>% 
-  select(id, chrom, pos, ref, alt)
+  dplyr::select(id, chrom, pos, ref, alt)
   
   meta <- process_metadata(meta)
   mt <- t(vcfR::extract.gt(vcf, return.alleles = T)[!meta$filter,])
@@ -347,11 +347,11 @@ parse_counts_metadata <- function(path,
   }
   
   meta_data <- meta_data %>% 
-    mutate(allele_type = stringr::str_split_fixed(!!sym(allele_id_col), allele_sep, 2)[, 2])
+    dplyr::mutate(allele_type = stringr::str_split_fixed(!!sym(allele_id_col), allele_sep, 2)[, 2])
   
   # Wider the metadata table
   meta_data_wide <- meta_data %>% 
-    select(!!sym(snp_id_col),
+    dplyr::select(!!sym(snp_id_col),
            !!sym(allele_sequence_col),
            allele_type) %>% 
     tidyr::pivot_wider(

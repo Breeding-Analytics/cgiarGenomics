@@ -53,24 +53,7 @@ get_midpoint <- function(cut_label) {
   mean(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(cut_label)), ","))))
 }
 
-allelic_dosage <- function(genind){
-  # convert to genind data structure using a separator empty
-  locna <- genind@loc.n.all
-  ccc <- 1
 
-  # keep the less frequent allele countings
-  for (i in 2:length(locna)) {
-    if (locna[i - 1] == 1) {
-      ccc[i] <- ccc[i - 1] + 1
-    }
-    else {
-      ccc[i] <- ccc[i - 1] + 2
-    }
-  }
-
-  alellelic_dosage <- genind@tab[, ccc]
-  return(alellelic_dosage)
-}
 
 
 

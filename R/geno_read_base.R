@@ -47,11 +47,11 @@ process_metadata <- function(geno_metadata){
   }
   
   geno_metadata <- geno_metadata %>%
-    mutate(
-      id = if_else(row_number() %in% id_dup,  paste0(chrom, "_", pos), id),
+    dplyr::mutate(
+      id = dplyr::if_else(dplyr::row_number() %in% id_dup,  paste0(chrom, "_", pos), id),
       allele_count = stringr::str_count(alt, ",") + 1,
-      ref_len = if_else(stringr::str_detect(ref, "^[ACGT]$"),nchar(ref),NA),
-      alt_len = if_else(stringr::str_detect(alt, "^[ACGT]$"),nchar(stringr::str_replace(alt, ",", "")),NA) 
+      ref_len = dplyr::if_else(stringr::str_detect(ref, "^[ACGT]$"),nchar(ref),NA),
+      alt_len = dplyr::if_else(stringr::str_detect(alt, "^[ACGT]$"),nchar(stringr::str_replace(alt, ",", "")),NA) 
     ) 
   
   # Flag no reference alleles
