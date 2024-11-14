@@ -117,6 +117,13 @@ get_maf <- function(gl){
   return(maf)
 }
 
+get_inbreeding <- function(gl){
+  p <- 1 - gl@other$loc.metrics$maf
+  he <- 2 * gl@other$loc.metrics$maf * p
+  Fis <- 1 - (gl@other$loc.metrics$loc_het/he)
+  return(Fis)
+}
+
 recalc_metrics <- function(gl){
 
   gl@other$loc.metrics <- data.frame(
@@ -125,6 +132,8 @@ recalc_metrics <- function(gl){
     loc_het = get_loc_heterozygosity(gl, max(adegenet::ploidy(gl)))
   )
   
+  # Use already calculated loc stats
+  gl@other$loc.metrics$loc_Fis <- get_inbreeding(gl)
   
   gl@other$ind.metrics <- data.frame(
                                      ind_miss = get_ind_missing(gl),
