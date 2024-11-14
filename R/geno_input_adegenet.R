@@ -61,8 +61,9 @@ read_hapmap <- function(path, ploidity = 2, sep = c("","/","|")) {
   # Metadata processing, get the first allele as reference and the remaining
   # as alternative
   meta <- table[1:11] %>% 
-    mutate(ref = stringr::str_split(alleles, '/', simplify = TRUE)[,1],
-           alt = purrr::map_chr(stringr::str_split(alleles, '/'), \(.x) paste(.x[-1], collapse = ","))) %>% 
+    mutate(alt = purrr::map_chr(stringr::str_split(alleles, '/'), \(.x) paste(.x[-1], collapse = ",")),
+           ref = stringr::str_split(alleles, '/', simplify = TRUE)[,1],
+           ) %>% 
     mutate(alt = na_if(alt, "")) %>% 
     select('rs#', chrom, pos, ref, alt) %>% 
     rename(id = 'rs#')
@@ -180,9 +181,6 @@ read_DArTSeq_SNP <- function(path, snp_id, chr_name, pos_name) {
   
   # Read the DArTSeq CSV file
   gl <- dartR::gl.read.dart(path)
-  
-  
-  
   
   if(!hasName(gl@other$loc.metrics, snp_id)){
     cli::cli_abort("The input snp_id: {snp_id} column doesn't exist in the dartSeq file")

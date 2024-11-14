@@ -1,37 +1,112 @@
-
-# filter by missing rate by sample a geneind obj
-filter_missing_rate_by_indv <- function(gl, threshold){
-  index <- gl@other$ind.metrics$ind_miss <= threshold
-  gl2 <- gl[index,]
-  gl2 <- recalc_metrics(gl2)
-  return(gl2)
+#' Filter function
+#' 
+#' This function generalizes the filtering functions using the parameter name
+#' and comparing in locus or individuals using the provided comparision operator.
+#' A list indicating the used thresold, if the filter was performed over individuals
+#' or locus and the indices of elements that meet the comparision.
+#'
+#' @param gl 
+#' @param parameter 
+#' @param threshold 
+#' @param comparison_operator 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+filter_gl <- function(gl, parameter, threshold, comparison_operator){
+  
+  # Verify if parameter exist on the gl and get the margin (ind, loc)
+  filter_margin <- get_parameter_margin(gl, parameter)
+  comparison_operator <- match.arg(comparison_operator, choices = c(">", ">=", "<", "<="))
+  comparison_func <- match.fun(comparison_operator)
+  # Verify if threshold is a float value
+  if(!rlang::is_double(threshold)){
+    cli::cli_abort("`threshold`: {threshold} is not a float, correct it")
+  }
+  
+  if(filter_margin == 'loc'){
+    index <- which(comparison_func(gl@other$loc.metrics[parameter], threshold))
+  } else {
+    index <- which(comparison_func(gl@other$ind.metrics[parameter], threshold))
+  }
+  
+  out <- list(param = parameter,
+              threshold = threshold,
+              filter_margin = filter_margin,
+              index = index)
+  
+  return(out)
 }
 
-# filter by missing rate by marker a geneind obj
-filter_missing_rate_by_marker <- function(gl, threshold){
-  index <- gl@other$loc.metrics$loc_miss <= threshold
-  gl2 <- gl[, index]
-  gl2 <- recalc_metrics(gl2)
-  return(gl2)
+get_parameter_margin <- function(gl, param_name){
+  # Get the expected parameters
+  loc_metric_names <- colnames(gl@other$loc.metrics)
+  ind_metric_names <- colnames(gl@other$ind.metrics)
+  
+  param_name = match.arg(param_name, choices = c(loc_metric_names, ind_metric_names))
+  
+  if(param_name %in% loc_metric_names){
+    by = 'loc'
+  } else {
+    by = 'ind'
+  }
+  return(by)
 }
 
-filter_MAF <- function(gl, threshold){
-  index <- gl@other$loc.metrics$maf >= threshold
-  gl2 <- gl[, index]
-  gl2 <- recalc_metrics(gl2)
+#' Apply a sequence of filterings over a gl object
+#'
+#' filt_sequence named list (param = param_name, threshold: t, operator: op)
+#' @param gl 
+#' @param filt_sequence 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+apply_sequence_filtering <- function(gl, filt_sequence){
+  
+  if(!rlang::is_bare_list(filt_sequence)){
+    cli::cli_abort("Provide a list of filter operations in `filt_sequence`")
+  }
+  if(!inherits(gl, "genlight")){
+    cli::cli_abort("`gl` is not a genlight class")
+  }
+  
+  # Duplicate the gl object to perform the filtering
+  working_gl <- gl
+  
+  step <- 0
+  filtering_log <- list()
+  
+  for (filt_step in filt_sequence) {
+    param <- filt_step[['param']]
+    threshold <- filt_step[['threshold']]
+    operator <- filt_step[['operator']]
+    
+    if(step == 0){
+      # Ensure params are updated
+      working_gl <- recalc_metrics(working_gl)
+      previous_margin <- get_parameter_margin(working_gl, param)
+    } 
+    else {
+      # Applicatoin of i_filter
+      i_margin <- get_parameter_margin(working_gl, param)
+      if(i_margin != previous_margin){
+        previous_margin <- i_margin
+        working_gl <- recalc_metrics(working_gl)
+      }
+      
+      i_filt_out <- filter_gl(working_gl,
+                              parameter = param,
+                              threshold = threshold,
+                              comparison_operator = operator)
+      
+      filtering_log[[glue::glue("{param}_{step}")]] <- i_filt_out
+    }
+    
+    step <- step + 1
+  }
+  return(list(gl = working_gl, filt_log = filtering_log))
 }
-
-filter_heterozygosis_by_loc <- function(gl, threshold){
-  index <- gl@other$loc.metrics$loc_het <= threshold
-  gl2 <- gl[, index]
-  gl2 <- recalc_metrics(gl2)
-}
-
-filter_heterozygosis_by_ind <- function(gl, threshold){
-  index <- gl@other$ind.metrics$ind_het <= threshold
-  gl2 <- gl[index,]
-  gl2 <- recalc_metrics(gl2)
-}
-
-
 
