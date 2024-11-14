@@ -1,10 +1,5 @@
-import(adegenet)
-import(dplyr)
 importFrom("magrittr","%>%")
-import(purrr)
-import(vcfR)
-import(dartR)
-importFrom("stringr", str_split)
+import(stringr)
 
 export(read_hapmap, read_vcf, read_DArTSeq_SNP,
        read_DArTag_count_dosage,
@@ -13,11 +8,8 @@ export(read_hapmap, read_vcf, read_DArTSeq_SNP,
        get_overall_missingness, get_heterozygosity_metrics,
        get_maf, get_loc_heterozygosity,
        get_ind_heterozygosity, recalc_metrics,
-       filter_missing_rate_by_indv,
-       filter_missing_rate_by_marker,
-       filter_MAF,
-       filter_heterozygosis_by_loc,
-       filter_heterozygosis_by_ind,
+       apply_sequence_filtering,
+       filter_gl,get_parameter_margin,
        get_overall_summary
        )
 
