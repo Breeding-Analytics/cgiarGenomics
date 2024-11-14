@@ -50,7 +50,7 @@ get_ind_missing <- function(gl) {
   mt <- is.na(as.matrix(gl))
   
   # Calculate the proportion of missing data for each individual (row)
-  ind_miss <- rowSums(mt) / adegenet::nLoc(gl)
+  ind_miss <- Matrix::rowSums(mt) / adegenet::nLoc(gl)
   
   return(ind_miss)
 }
@@ -92,22 +92,22 @@ get_heterozygosity_metrics <- function(gl, ploidy = 2){
   # Boolean matrix of genotype calls where 0 > dosage < ploidy
   mt <- as.matrix(gl)
   het_ind_loc <- mt > 0 & mt < ploidy
-  het_loc <- colSums(het_ind_loc , na.rm = T)/adegenet::nInd(gl)
-  het_ind <- rowSums(het_ind_loc , na.rm = T)/adegenet::nLoc(gl)
+  het_loc <- Matrix::colSums(het_ind_loc , na.rm = T)/adegenet::nInd(gl)
+  het_ind <- Matrix::rowSums(het_ind_loc , na.rm = T)/adegenet::nLoc(gl)
   return(list(het_ind = het_ind, het_loc = het_loc))
 }
 
 get_loc_heterozygosity <- function(gl, ploidy = 2){
   mt <- as.matrix(gl)
   het_ind_loc <- mt > 0 & mt < ploidy
-  het_loc <- colSums(het_ind_loc , na.rm = T)/adegenet::nInd(gl)
+  het_loc <- Matrix::colSums(het_ind_loc , na.rm = T)/adegenet::nInd(gl)
   return(het_loc)
 }
 
 get_ind_heterozygosity <- function(gl, ploidy = 2){
   mt <- as.matrix(gl)
   het_ind_loc <- mt > 0 & mt < ploidy
-  het_ind <- rowSums(het_ind_loc , na.rm = T)/adegenet::nLoc(gl)
+  het_ind <- Matrix::rowSums(het_ind_loc , na.rm = T)/adegenet::nLoc(gl)
   return(het_ind)
 }
 
