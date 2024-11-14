@@ -34,7 +34,8 @@ filter_gl <- function(gl, parameter, threshold, comparison_operator){
   out <- list(param = parameter,
               threshold = threshold,
               filter_margin = filter_margin,
-              index = index)
+              index = index,
+              loc_name = gl@loc.names[-c(index)])
   
   return(out)
 }
@@ -65,7 +66,6 @@ get_parameter_margin <- function(gl, param_name){
 #'
 #' @examples
 apply_sequence_filtering <- function(gl, filt_sequence){
-  
   if(!rlang::is_bare_list(filt_sequence)){
     cli::cli_abort("Provide a list of filter operations in `filt_sequence`")
   }
@@ -76,36 +76,33 @@ apply_sequence_filtering <- function(gl, filt_sequence){
   # Duplicate the gl object to perform the filtering
   working_gl <- gl
   
-  step <- 0
   filtering_log <- list()
   
-  for (filt_step in filt_sequence) {
+  previous_margin <- ""
+  for (i_step in 1:length(filt_sequence)){
+
+ 
+    filt_step <- filt_sequence[[i_step]]
     param <- filt_step[['param']]
     threshold <- filt_step[['threshold']]
     operator <- filt_step[['operator']]
+  
+    i_filt_out <- filter_gl(working_gl,
+                            parameter = param,
+                            threshold = threshold,
+                            comparison_operator = operator)
     
-    if(step == 0){
-      # Ensure params are updated
-      working_gl <- recalc_metrics(working_gl)
-      previous_margin <- get_parameter_margin(working_gl, param)
-    } 
-    else {
-      # Applicatoin of i_filter
-      i_margin <- get_parameter_margin(working_gl, param)
-      if(i_margin != previous_margin){
-        previous_margin <- i_margin
-        working_gl <- recalc_metrics(working_gl)
+    i_margin <- get_parameter_margin(gl, param)
+    
+    if(length(i_filt_out$index) > 0){
+      if(i_margin == "loc"){
+        working_gl <- working_gl[,i_filt_out$index]
+      } else {
+        working_gl <- working_gl[i_filt_out$index,]
       }
-      
-      i_filt_out <- filter_gl(working_gl,
-                              parameter = param,
-                              threshold = threshold,
-                              comparison_operator = operator)
-      
-      filtering_log[[glue::glue("{param}_{step}")]] <- i_filt_out
     }
-    
-    step <- step + 1
+    working_gl <- recalc_metrics(working_gl)
+    filtering_log[[glue::glue("{param}_{i_step}")]] <- i_filt_out
   }
   return(list(gl = working_gl, filt_log = filtering_log))
 }
