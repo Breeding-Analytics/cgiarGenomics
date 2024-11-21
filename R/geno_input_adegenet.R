@@ -74,12 +74,14 @@ read_hapmap <- function(path, ploidity = 2, sep = c("","/","|")) {
   # Read marker columns and transpose to obtain samples x snps
   mt <- t(table[!meta$filter, c(12:dim(table)[2])])
   allele_set <- paste(meta$ref[!meta$filter], meta$alt[!meta$filter], sep='/')
-
+  
   gt <- mapply(function(col, arg, ploidity, sep) get_allelic_dosage(mt[,col], arg,ploidity, sep),
                col = seq(1,dim(mt)[2]), 
                arg = allele_set,
                ploidity = ploidity,
                sep = sep)
+  
+  
   
   gl <- new("genlight",
             gt,
@@ -347,17 +349,17 @@ parse_counts_metadata <- function(path,
   }
   
   meta_data <- meta_data %>% 
-    dplyr::mutate(allele_type = stringr::str_split_fixed(!!sym(allele_id_col), allele_sep, 2)[, 2])
+    dplyr::mutate(allele_type = stringr::str_split_fixed(!!rlang::sym(allele_id_col), allele_sep, 2)[, 2])
   
   # Wider the metadata table
   meta_data_wide <- meta_data %>% 
-    dplyr::select(!!sym(snp_id_col),
-           !!sym(allele_sequence_col),
+    dplyr::select(!!rlang::sym(snp_id_col),
+           !!rlang::sym(allele_sequence_col),
            allele_type) %>% 
     tidyr::pivot_wider(
-      id_cols = !!sym(snp_id_col),
+      id_cols = !!rlang::sym(snp_id_col),
       names_from = allele_type,
-      values_from = !!sym(allele_sequence_col)
+      values_from = !!rlang::sym(allele_sequence_col)
     )
   
   alleles <- purrr::map2_dfr(as.vector(unlist(meta_data_wide[,ref_name])),
