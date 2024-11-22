@@ -27,15 +27,20 @@ filter_gl <- function(gl, parameter, threshold, comparison_operator){
   
   if(filter_margin == 'loc'){
     index <- which(comparison_func(gl@other$loc.metrics[parameter], threshold))
+    filter_out <- gl@loc.names[-c(index)]
+    
   } else {
     index <- which(comparison_func(gl@other$ind.metrics[parameter], threshold))
+    filter_out <- gl@ind.names[-c(index)]
+    
   }
   
   out <- list(param = parameter,
+              operator = comparison_operator,
               threshold = threshold,
               filter_margin = filter_margin,
               index = index,
-              loc_name = gl@loc.names[-c(index)])
+              filter_out = filter_out)
   
   return(out)
 }
