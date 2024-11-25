@@ -34,7 +34,21 @@ split_strings <- function(l, ploidity){
 
 
 
-
+apply_bioflow_modifications <- function(gl, modifications){
+  
+  ind_out <- modifications %>% 
+    dplyr::filter(margin == 'ind') %>% 
+    dplyr::pull(filt_out)
+  
+  loc_out <- modifications %>% 
+    dplyr::filter(margin == 'loc') %>% 
+    dplyr::pull(filt_out)
+  
+  ind_idx <- which(!ind_out %in% adegenet::indNames())
+  loc_idx <- which(!loc_out %in% adegenet::locNames())
+  
+  return(gl[loc_idx, ind_idx])
+}
 
 
 
