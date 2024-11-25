@@ -58,7 +58,7 @@ impute_gl <- function(gl, ploidity = 2, method = 'frequency'){
   
   if(method == 'frequency'){
     imp <- unname(unlist(lapply(q_allele[loc_na[,2]],
-                                function(x) {return(as.numeric(i_impute(q_frq = x)))})))
+                                function(x) {return(as.numeric(i_freq_impute(q_frq = x)))})))
   }
   
   loc_na$call <- imp
