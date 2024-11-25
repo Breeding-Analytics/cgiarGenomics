@@ -48,12 +48,11 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 
-<<<<<<< HEAD
 tmp.vcf.gz
 scheme/
 cgiarGenomics.wiki/
 tests/*.R
-=======
-./*.vcf
-./*.vcf.gz
->>>>>>> genlight_approach
+
+.DS_Store
+test/.DS_Store
+
