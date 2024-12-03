@@ -149,7 +149,7 @@ get_overall_summary <- function(gl){
   nlocs <- adegenet::nLoc(gl)
   overall_missiness <- mean(gl@other$ind.metrics$ind_miss)
   overall_heterozygosity <- mean(gl@other$ind.metrics$ind_het)
-  overall_maf <- mean(gl@other$loc.metrics$maf)
+  overall_maf <- mean(gl@other$loc.metrics$maf, na.rm = T)
   
   out <- list(
     nind = ninds,
