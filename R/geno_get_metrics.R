@@ -112,8 +112,9 @@ get_ind_heterozygosity <- function(gl, ploidy = 2){
 }
 
 
-get_maf <- function(gl){
-  maf <- adegenet::glMean(gl)*(1/2)
+get_maf <- function(gl, ploidy = 2){
+  alf <- adegenet::glMean(gl)*(1/ploidy)
+  maf <- ifelse(alf > 0.5, 1 - alf, alf)
   return(maf)
 }
 
@@ -127,7 +128,7 @@ get_inbreeding <- function(gl){
 recalc_metrics <- function(gl){
 
   gl@other$loc.metrics <- data.frame(
-    maf = get_maf(gl),
+    maf = get_maf(gl, max(adegenet::ploidy(gl))),
     loc_miss = get_loc_missing(gl),
     loc_het = get_loc_heterozygosity(gl, max(adegenet::ploidy(gl)))
   )
