@@ -53,14 +53,14 @@ impute_gl <- function(gl, ploidity = 2, method = 'frequency'){
   mt <- as.matrix(gl)
   q_allele <- adegenet::glMean(gl)
   
-  loc_na <- as.data.frame(which(is.na(mt), arr.ind = TRUE))
+  loc_na <- as.data.frame(which(is.na(mt), arr.ind = TRUE, useNames = F))
   
   
   if(method == 'frequency'){
     imp <- unname(unlist(lapply(q_allele[loc_na[,2]],
-                                function(x) {return(as.numeric(i_freq_impute(q_frq = x)))})))
+                                function(x) {return(as.numeric(i_freq_impute(q_frq = x, ploidity)))})))
   }
-  
+  colnames(loc_na) <- c('row', 'col')
   loc_na$call <- imp
   return(loc_na)
 }

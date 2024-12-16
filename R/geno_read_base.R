@@ -21,7 +21,7 @@ process_metadata <- function(geno_metadata){
   
   # Flag markers with physical location
   geno_usable_idx <- which(!complete.cases(geno_metadata[,c('chrom','pos')]),)
-  geno_metadata[geno_usable_idx,'filter'] <- TRUE
+  #geno_metadata[geno_usable_idx,'filter'] <- TRUE
   no_pos <- length(geno_usable_idx)
   
   if (no_pos > 0){
