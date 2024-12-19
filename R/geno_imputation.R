@@ -69,7 +69,7 @@ impute_gl <- function(gl, ploidity = 2, method = 'frequency'){
             imputed_mt,
             ploidy = ploidity,
             loc.names = gl@loc.names,
-            ind.names = gl@ind.namesu,
+            ind.names = gl@ind.names,
             chromosome = gl@chromosome,
             position = gl@position)
   
