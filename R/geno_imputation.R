@@ -40,7 +40,7 @@ i_freq_impute <- function(q_frq, ploidity = 2){
 #' @examples
 impute_gl <- function(gl, ploidity = 2, method = 'frequency'){
   
-  loci_all_nas <- sum(adegenet::glNA(gl)/ploidity > adegenet::nInd(gl))
+  loci_all_nas <- sum(adegenet::glNA(gl)/ploidity == adegenet::nInd(gl))
   nas_number <- sum(adegenet::glNA(gl))/ploidity
   number_imputations <- nas_number - (loci_all_nas * adegenet::nInd(gl))
   
