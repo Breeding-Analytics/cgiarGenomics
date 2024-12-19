@@ -63,10 +63,10 @@ impute_gl <- function(gl, ploidity = 2, method = 'frequency'){
   colnames(loc_na) <- c('row', 'col')
   loc_na$call <- imp
   
-  imputed_mt <- mt[cbind(loc_na$row, loc_na$col)] <- loc_na$call
+  mt[cbind(loc_na$row, loc_na$col)] <- loc_na$call
   
   imp_gl <- new("genlight",
-            imputed_mt,
+            mt,
             ploidy = ploidity,
             loc.names = gl@loc.names,
             ind.names = gl@ind.names,
@@ -74,7 +74,7 @@ impute_gl <- function(gl, ploidity = 2, method = 'frequency'){
             position = gl@position)
   
   adegenet::alleles(imp_gl) <- adegenet::alleles(gl)
-  imp_gl <- recalc_metrics(gl)
+  imp_gl <- recalc_metrics(imp_gl)
   
   return(list(gl = imp_gl, log = loc_na))
 }
