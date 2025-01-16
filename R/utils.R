@@ -36,20 +36,45 @@ split_strings <- function(l, ploidity){
 
 apply_bioflow_modifications <- function(gl, modifications){
   
-  ind_out <- modifications %>% 
-    dplyr::filter(margin == 'ind') %>% 
-    dplyr::pull(filt_out)
+  # Filtering modifications
+  filt_mods <- modifications %>% 
+    filter(!grepl("^imputation", reason))
   
-  loc_out <- modifications %>% 
-    dplyr::filter(margin == 'loc') %>% 
-    dplyr::pull(filt_out)
   
-  ind_idx <- which(!ind_out %in% adegenet::indNames(gl))
-  loc_idx <- which(!loc_out %in% adegenet::locNames(gl))
+  ind_out <- filt_mods %>% 
+    dplyr::filter(is.na(col)) %>% 
+    dplyr::pull(row)
   
-  print(ind_idx)
-  print(loc_idx)
-  return(gl[ind_idx, loc_idx])
+  loc_out <- filt_mods %>% 
+    dplyr::filter(is.na(row)) %>% 
+    dplyr::pull(col)
+  
+  ind_idx <- seq(1:length(adegenet::indNames(gl)))[-ind_out]
+  loc_idx <- seq(1:length(adegenet::locNames(gl)))[-loc_out]
+  
+
+  filt_gl <- gl[ind_idx, loc_idx]
+  return(filt_gl)
+  
+  imp_mods <- modifications %>% 
+    filter(grepl("^imputation", reason))
+  
+  mt <- as.matrix(filt_gl)
+
+  mt[cbind(imp_mods$row, imp_mods$col)] <- imp_mods$value
+  
+
+  imp_gl <- new("genlight",
+                mt,
+                loc.names = filt_gl@loc.names,
+                ind.names = filt_gl@ind.names,
+                chromosome = filt_gl@chromosome,
+                position = filt_gl@position)
+  
+  adegenet::alleles(imp_gl) <- adegenet::alleles(filt_gl)
+  imp_gl <- recalc_metrics(imp_gl)
+  
+  return(imp_gl)
 }
 
 

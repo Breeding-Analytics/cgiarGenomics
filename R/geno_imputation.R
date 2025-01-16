@@ -23,6 +23,35 @@ i_freq_impute <- function(q_frq, ploidity = 2){
   return(dosage)
 }
 
+freq_impute <- function(mt, ploidity){
+  # Get the allelic frequencies
+  q_allele <- adegenet::glMean(gl)
+  # Linear index of nas
+  idx_na <- which(is.na(mt))
+  na_loc_idx <- sapply(idx_na, function(x){
+    loc_idx <- ceiling(x/nrow(mt))
+    return(loc_idx)
+  })
+  
+  imp <- unname(unlist(lapply(q_allele[na_loc_idx],
+                              function(x) {return(as.numeric(i_freq_impute(q_frq = x, ploidity)))})))
+  return(split(idx_na, imp))
+}
+
+apply_imputation <- function(mt, imp_dict){
+  for (dosage in names(imp_dict)) {
+    # Convert the list name to a numeric value
+    num_dosage <- as.numeric(dosage)
+    
+    # Get the linear indices associated with this value
+    idx <- imp_dict[[dosage]]
+    
+    # Assign the value to these positions in the matrix
+    mt[idx] <- num_dosage
+  }
+  return(mt)
+}
+
 
 #' Impute a gl object
 #'  
@@ -51,22 +80,17 @@ impute_gl <- function(gl, ploidity = 2, method = 'frequency'){
   cli::cli_inform("Missing genotype calls {number_imputations}")
   
   mt <- as.matrix(gl)
-  q_allele <- adegenet::glMean(gl)
-  
-  loc_na <- as.data.frame(which(is.na(mt), arr.ind = TRUE, useNames = F))
-  
-  
+
   if(method == 'frequency'){
-    imp <- unname(unlist(lapply(q_allele[loc_na[,2]],
-                                function(x) {return(as.numeric(i_freq_impute(q_frq = x, ploidity)))})))
+    imp_dict <- freq_impute(mt, ploidity)
   }
-  colnames(loc_na) <- c('row', 'col')
-  loc_na$call <- imp
   
-  mt[cbind(loc_na$row, loc_na$col)] <- loc_na$call
+  # apply the imputation creating a new gl instance
+  imp_mt <- apply_imputation(mt, imp_dict)
+  
   
   imp_gl <- new("genlight",
-            mt,
+            imp_mt,
             ploidy = ploidity,
             loc.names = gl@loc.names,
             ind.names = gl@ind.names,
@@ -76,5 +100,5 @@ impute_gl <- function(gl, ploidity = 2, method = 'frequency'){
   adegenet::alleles(imp_gl) <- adegenet::alleles(gl)
   imp_gl <- recalc_metrics(imp_gl)
   
-  return(list(gl = imp_gl, log = loc_na))
+  return(list(gl = imp_gl, log = imp_dict))
 }
