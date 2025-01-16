@@ -23,7 +23,7 @@ i_freq_impute <- function(q_frq, ploidity = 2){
   return(dosage)
 }
 
-freq_impute <- function(gl, ploidity){
+freq_impute <- function(gl, mt, ploidity){
   mt <- as.matrix(gl)
   # Get the allelic frequencies
   q_allele <- adegenet::glMean(gl)
@@ -74,6 +74,8 @@ impute_gl <- function(gl, ploidity = 2, method = 'frequency'){
   nas_number <- sum(adegenet::glNA(gl))/ploidity
   number_imputations <- nas_number - (loci_all_nas * adegenet::nInd(gl))
   
+  mt <- as.matrix(gl)
+  
   if(loci_all_nas > 0){
     cli::cli_warn("There are {loci_all_nas} loci with all missing data")
   }
@@ -81,7 +83,7 @@ impute_gl <- function(gl, ploidity = 2, method = 'frequency'){
   cli::cli_inform("Missing genotype calls {number_imputations}")
   
   if(method == 'frequency'){
-    imp_dict <- freq_impute(gl, ploidity)
+    imp_dict <- freq_impute(gl, mt, ploidity)
   }
   
   # apply the imputation creating a new gl instance
