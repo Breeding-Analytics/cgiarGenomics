@@ -186,7 +186,7 @@ read_DArTSeq_SNP <- function(path, snp_id, chr_name, pos_name) {
   }
   
   # Read the DArTSeq CSV file
-  gl <- dartR::gl.read.dart(path)
+  gl <- dartR.base::gl.read.dart(path)
   
   if(!hasName(gl@other$loc.metrics, snp_id)){
     cli::cli_abort("The input snp_id: {snp_id} column doesn't exist in the dartSeq file")
