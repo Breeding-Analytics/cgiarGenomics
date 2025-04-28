@@ -70,15 +70,22 @@ apply_imputation <- function(mt, imp_dict){
 #' @examples
 impute_gl <- function(gl, ploidity = 2, method = 'frequency'){
   
-  loci_all_nas <- sum(adegenet::glNA(gl)/ploidity == adegenet::nInd(gl))
+  loci_all_nas <- adegenet::glNA(gl)/ploidity == adegenet::nInd(gl)
+  
+  if(sum(loci_all_nas) > 0){
+    cli::cli_warn("There are {sum(loci_all_nas)} loci with all missing data")
+    # Filter out the all na loci
+    all_notna_idxs <- which(!loci_all_nas)
+    gl <- gl[,all_notna_idxs]
+    mt <- as.matrix(gl)
+  }
+  
+  
   nas_number <- sum(adegenet::glNA(gl))/ploidity
-  number_imputations <- nas_number - (loci_all_nas * adegenet::nInd(gl))
+  number_imputations <- nas_number - (sum(loci_all_nas) * adegenet::nInd(gl))
   
   mt <- as.matrix(gl)
   
-  if(loci_all_nas > 0){
-    cli::cli_warn("There are {loci_all_nas} loci with all missing data")
-  }
   
   cli::cli_inform("Missing genotype calls {number_imputations}")
   
