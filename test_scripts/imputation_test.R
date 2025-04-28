@@ -26,5 +26,3 @@ filt_gl <- apply_sequence_filtering(gl, filt_seq)
 imp_gl <- impute_gl(filt_gl$gl,
                     ploidity = ploidity_lvl,
                     method = 'frequency')
-
-

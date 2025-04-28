@@ -21,8 +21,8 @@ filter_gl <- function(gl, parameter, threshold, comparison_operator){
   comparison_operator <- match.arg(comparison_operator, choices = c(">", ">=", "<", "<="))
   comparison_func <- match.fun(comparison_operator)
   # Verify if threshold is a float value
-  if(threshold %% 1 == 0){
-    cli::cli_abort("`threshold`: {threshold} is not a float, correct it")
+  if(threshold > 1 ){
+    cli::cli_abort("`threshold`: {threshold} is greather of equal to 1, correct it")
   }
   
   if(filter_margin == 'loc'){
@@ -78,15 +78,28 @@ apply_sequence_filtering <- function(gl, filt_sequence){
     cli::cli_abort("`gl` is not a genlight class")
   }
   
+  # Allways add at the end a filter step to remove all NA loci and ind
+  
+  locNA_filt <- list("loc_miss", "<", 1)
+  indNA_filt <- list("ind_miss", "<", 1)
+  
+  
+  allNA_steps <- list(
+    locNA_filt,
+    indNA_filt
+  )
+  
+  
+  filt_NA_seq <- lapply(allNA_steps, function(x){
+    setNames(as.list(x), c("param", "operator", "threshold"))
+  })
+  filt_sequence <- append(filt_sequence, filt_NA_seq)
   # Duplicate the gl object to perform the filtering
   working_gl <- gl
-  
   filtering_log <- list()
-  
   previous_margin <- ""
+  
   for (i_step in 1:length(filt_sequence)){
-
- 
     filt_step <- filt_sequence[[i_step]]
     param <- filt_step[['param']]
     threshold <- filt_step[['threshold']]
@@ -107,8 +120,8 @@ apply_sequence_filtering <- function(gl, filt_sequence){
       }
     }
     working_gl <- recalc_metrics(working_gl)
-    filtering_log[[glue::glue("{param}_{i_step}")]] <- i_filt_out
   }
+  
   return(list(gl = working_gl, filt_log = filtering_log))
 }
 
