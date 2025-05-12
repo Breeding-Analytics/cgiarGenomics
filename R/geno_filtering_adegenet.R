@@ -120,6 +120,7 @@ apply_sequence_filtering <- function(gl, filt_sequence){
       }
     }
     working_gl <- recalc_metrics(working_gl)
+    filtering_log[[glue::glue("{param}_{i_step}")]] <- i_filt_out
   }
   
   return(list(gl = working_gl, filt_log = filtering_log))
