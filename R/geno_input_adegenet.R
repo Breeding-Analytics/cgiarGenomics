@@ -1,4 +1,116 @@
 
+#' read_genolcsv
+#'
+#' This function reads a csv file (uncompressed) and converts it into a genlight object.
+#' In the csv file SNPs are in rows and Individuals in columns
+#'
+#' @param path Path to the csv file (uncompressed).
+#' @param ploidity Integer, ploidity level of the organism (default: 2).
+#' @param sep String, separator that divides the alleles (default: "").
+#'
+#' @return A genlight object.
+#' @export
+#'
+#' @examples
+#' read_genolcsv("path/to/csv/file.csv")
+#' read_genolcsv("path/to/csv/file.csv", ploidity = 4)
+#' read_genolcsv("path/to/csv/file.csv", sep = "|")
+read_genolcsv <- function(path,
+                        snp_id,
+                        chr_name,
+                        pos_name,
+                        first_sample,
+                        ploidity = 2,
+                        sep = c("","/","|")) {
+  # Validate arguments
+  if (!file.exists(path)){
+    cli::cli_abort("`path` don't exist. Verify if is wrote properly {path}")
+  }
+  if (!rlang::is_integerish(ploidity)) {
+    cli::cli_abort("`ploidity` must be a round number not {ploidity}")
+  }
+  sep = match.arg(sep)
+  
+  
+  # Read the genotype data from the tabular file
+  table <- read_tabular_geno(path)
+  
+  if(!hasName(table, snp_id)){
+    cli::cli_abort("The input snp_id: {snp_id} column doesn't exist in the csv file")
+  }
+  
+  if(!hasName(table, chr_name)){
+    cli::cli_abort("The input chr_name: {chr_name} column doesn't exist in the csv file")
+  }
+  
+  if(!hasName(table, pos_name)){
+    cli::cli_abort("The input pos_name: {pos_name} column doesn't exist in the csv file")
+  }
+  
+  nrows <- dim(table)[1]
+  ncols <- dim(table)[2]
+  individuals <- colnames(table)[which(x == first_sample,colnames(table)):ncols]
+  loci <- table[,snp_id]
+  
+  # Print a data integrity message
+  int_message <- paste0(
+    "Input data should have loci as rows and individuals as columns \n",
+    nrows - 1, " Loci, confirming first 5: \n",
+    paste(loci[1:5], collapse = " "), "\n",
+    length(individuals), " Individuals, confirming first 5:\n",
+    paste(individuals[1:5], collapse = " ")
+  )
+  
+  cli::cli_inform(int_message)
+  
+  # Check if individual labels and loci IDs are unique
+  if (length(unique(individuals)) != length(individuals)) {
+    cli::cli_abort("Fatal Error: Individual labels are not unique, check and edit your input file\n")
+  }
+  
+  # Metadata processing, get the first allele as reference and the remaining
+  # as alternative
+  meta <- table[1:11] %>% 
+    dplyr::mutate(alt = purrr::map_chr(stringr::str_split(alleles, '/'), \(.x) paste(.x[-1], collapse = ",")),
+           ref = stringr::str_split(alleles, '/', simplify = TRUE)[,1],
+           ) %>% 
+    dplyr::mutate(alt = dplyr::na_if(alt, "")) %>% 
+    dplyr::select('rs#', chrom, pos, ref, alt) %>% 
+    dplyr::rename(id = 'rs#')
+  
+  meta <- process_metadata(meta)
+  
+  
+  # Read marker columns and transpose to obtain samples x snps
+  mt <- t(table[!meta$filter, c(12:dim(table)[2])])
+  allele_set <- paste(meta$ref[!meta$filter], meta$alt[!meta$filter], sep='/')
+  
+  gt <- mapply(function(col, arg, ploidity, sep) get_allelic_dosage(mt[,col], arg,ploidity, sep),
+               col = seq(1,dim(mt)[2]), 
+               arg = allele_set,
+               ploidity = ploidity,
+               sep = sep)
+  
+  max_dosage <- max(gt, na.rm = TRUE)
+  if(max_dosage < ploidity){
+    cli::cli_warn("Max dosage ({max_dosage}) lower than ploidy lvl ({ploidity})")
+  } 
+  if (max_dosage > ploidity){
+    cli::cli_abort("Max dosage ({max_dosage}) higher than ploidy lvl ({ploidity})")
+  }
+  
+  gl <- new("genlight",
+            gt,
+            ploidy = ploidity,
+            loc.names = meta$id[!meta$filter],
+            ind.names = individuals,
+            chromosome = meta$chrom[!meta$filter],
+            position = meta$pos[!meta$filter])
+  adegenet::alleles(gl) <- allele_set
+  gl <- recalc_metrics(gl)
+  return(gl)
+}
+
 
 #' read_hapmap
 #'
@@ -73,6 +185,17 @@ read_hapmap <- function(path, ploidity = 2, sep = c("","/","|")) {
   
   # Read marker columns and transpose to obtain samples x snps
   mt <- t(table[!meta$filter, c(12:dim(table)[2])])
+  
+  gc_len <- purrr::map_int(mt, function(x){max(nchar(x))})
+  max_dosage <- max(gc_len, na.rm = TRUE)
+  
+  if(max_dosage < ploidity){
+    cli::cli_warn("Max dosage ({max_dosage}) lower than ploidy lvl ({ploidity})")
+  }
+  
+  if (max_dosage > ploidity){
+    cli::cli_abort("Max dosage ({max_dosage}) higher than ploidy lvl ({ploidity})")
+  }
   allele_set <- paste(meta$ref[!meta$filter], meta$alt[!meta$filter], sep='/')
   
   gt <- mapply(function(col, arg, ploidity, sep) get_allelic_dosage(mt[,col], arg,ploidity, sep),
@@ -80,7 +203,6 @@ read_hapmap <- function(path, ploidity = 2, sep = c("","/","|")) {
                arg = allele_set,
                ploidity = ploidity,
                sep = sep)
-  
   
   
   gl <- new("genlight",
@@ -140,6 +262,19 @@ read_vcf <- function(path, ploidity = 2, na_reps = c("-", "./."), sep="/") {
   if (length(na_reps) > 0) {
     idx <- which(mt %in% na_reps)
     mt[idx] <- NA
+  }
+  
+  # check ploidity
+  mt_gt_str <- matrix(gsub(sep, "", mt), nrow = dim(mt)[1], ncol = dim(mt)[2])
+  gc_len <- purrr::map_int(mt_gt_str, function(x){max(nchar(x))})
+  max_dosage <- max(gc_len, na.rm = TRUE)
+  
+  if(max_dosage < ploidity){
+    cli::cli_warn("Max dosage ({max_dosage}) lower than ploidy lvl ({ploidity})")
+  }
+  
+  if (max_dosage > ploidity){
+    cli::cli_abort("Max dosage ({max_dosage}) higher than ploidy lvl ({ploidity})")
   }
   
   individuals <- rownames(mt)
@@ -472,6 +607,14 @@ read_DArTag_count_dosage <- function(dosage_path,
   # Read marker columns and transpose to obtain samples x snps
   mt <- t(merged_data[!meta$filter, individuals])
   allele_set <- paste(meta$ref[!meta$filter], meta$alt[!meta$filter], sep='/')
+  
+  max_dosage <- max(mt, na.rm = TRUE)
+  if(max_dosage < ploidity){
+    cli::cli_warn("Max dosage ({max_dosage}) lower than ploidy lvl ({ploidity})")
+  } 
+  if (max_dosage > ploidity){
+    cli::cli_abort("Max dosage ({max_dosage}) higher than ploidy lvl ({ploidity})")
+  }
   
   gl <- new("genlight",
             mt,

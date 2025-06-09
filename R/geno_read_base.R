@@ -26,7 +26,10 @@ process_metadata <- function(geno_metadata){
   
   if (no_pos > 0){
     cli::cli_inform("Were found {no_pos} markers
-                   without physicall location, flaged")
+                   without physicall location, put into unk chrom and consecutive position")
+    
+    geno_metadata[geno_usable_idx, 'chrom'] <- "unk"
+    geno_metadata[geno_usable_idx, 'pos'] <- seq(1, no_pos)
   }
   
   # Flag colocalized markers
