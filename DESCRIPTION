@@ -10,5 +10,7 @@ Depends: R (>= 3.5.0), adegenet, dplyr, stringr, vcfR, dartR.base, ggplot2, purr
 License: GPL (>= 2)
 Suggests: parallel
 remotes:
-  bioc::3.19/SNPRelate
+  bioc::3.19/SNPRelate,
+  bioc::3.21/snpStats
+  
 RoxygenNote: 7.3.2
