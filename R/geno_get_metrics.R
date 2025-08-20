@@ -1,4 +1,44 @@
 
+# Purity Metrics ----------------------------------------------------------
+get_purity <- function(gl, inds) {
+  if (sum(inds %in% indNames(gl)) < length(inds)) {
+   cli::cli_abort("At least one duplicated ind not in gl")
+  }
+  ind_idx <- which(inds %in% indNames(gl))
+  cmb <- combn(inds, 2)
+  ind_x  <- cmb[1, ]
+  ind_y <- cmb[2, ]
+  comparision <- purrr::map2_dfr(ind_x, ind_y, ~{
+    ind_idx <- which(indNames(gl) %in% c(.x,.y))
+    pair_gl <- gl[ind_idx,]
+    paired_ind_comparision(pair_gl,.x,.y)
+  })
+  return(comparision)
+}
+
+
+paired_ind_comparision <- function(gl, x, y) {
+  if (length(indNames(gl)) > 2) {
+    cli::cli_abort("gl have more than two inds, not paired")
+  }
+  inf_loc_idx <- unname(which(get_loc_missing(gl) == 0))
+  tgt_gl <- gl[,inf_loc_idx]
+  mt <- as.matrix(tgt_gl)
+  ploidity_lvl <- max(adegenet::ploidy(gl))
+  hom_comp_idx <- which(colSums(mt) %in% c(0, 2*ploidity_lvl))
+  het_comp_idx <- which(!colSums(mt) %in% c(0, 2*ploidity_lvl))
+  
+  hom_diff <- sum(mt[1,hom_comp_idx] != mt[2,hom_comp_idx])
+  het_diff <- sum(mt[1,het_comp_idx] != mt[2,het_comp_idx])
+  out <- data.frame(ind1 = x,
+                    ind2 = y,
+              sites = dim(mt)[2],
+              hom_diff = hom_diff,
+              het_diff = het_diff)
+  return(out)
+}
+
+
 # Missingness metrics -----------------------------------------------------
 
 #' Get Locus Missingness
