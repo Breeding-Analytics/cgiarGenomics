@@ -26,3 +26,14 @@ filt_gl <- apply_sequence_filtering(gl, filt_seq)
 imp_gl <- impute_gl(filt_gl$gl,
                     ploidity = ploidity_lvl,
                     method = 'frequency')
+
+
+# Purity Tests ------------------------------------------------------------
+
+dups <- c("LH195/PHK76", "W10004_0007/PHK76", "LH244/PHK76", "B37/MO17")
+get_purity(gl, dups)
+
+sdict <- data.frame(sample_id = indNames(gl), designation_id = indNames(gl))
+sdict[1:5, "designation_id"] <- "dup_test"
+
+out <- merge_duplicate_inds(gl, sdict)
