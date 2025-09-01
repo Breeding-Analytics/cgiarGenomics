@@ -24,7 +24,6 @@ random_select_loci <- function(gl, ind_miss, loc_miss, maf, size, seed){
     group_by(CHROM) %>% 
     summarize(total = n()) %>% 
     mutate(q =floor((size*total)/dim(sites)[1]))
-  print(group_sizes)
   
   remaining <- size - sum(group_sizes$q)
   

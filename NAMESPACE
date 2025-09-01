@@ -11,7 +11,7 @@ export(read_hapmap, read_vcf, read_DArTSeq_SNP,
        apply_sequence_filtering,
        filter_gl,get_parameter_margin,
        get_overall_summary, apply_bioflow_modifications, impute_gl,
-       set_fraction_na, get_accuracy
-       )
+       set_fraction_na, get_accuracy,
+       get_paired_IBS)
 
 
