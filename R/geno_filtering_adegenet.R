@@ -1,3 +1,50 @@
+random_select_loci <- function(gl, ind_miss, loc_miss, maf, size, seed){
+  
+  if (!is.null(seed)) set.seed(seed)
+  
+  filter_1 <- list("ind_miss", "<=", ind_miss)
+  filter_2 <- list("loc_miss", "<=", loc_miss)
+  filter_3 <- list("maf", ">", maf)
+  
+  filtering_steps <- list(
+    filter_1,
+    filter_2,
+    filter_3)
+  
+  filt_seq <- lapply(filtering_steps, function(x){
+    setNames(as.list(x), c("param", "operator", "threshold"))
+  })
+  
+  filt_gl <- apply_sequence_filtering(gl, filt_seq)
+  
+  sites <- data.frame(loc_id = adegenet::locNames(filt_gl$gl),
+                      CHROM = filt_gl$gl@chromosome)
+  
+  group_sizes <- sites %>% 
+    group_by(CHROM) %>% 
+    summarize(total = n()) %>% 
+    mutate(q =floor((size*total)/dim(sites)[1]))
+  
+  remaining <- size - sum(group_sizes$q)
+  
+  max_total <- group_sizes %>% 
+    filter(total == max(group_sizes$total)) %>% 
+    pull(CHROM)
+  
+  out <- sites %>%
+    group_by(CHROM) %>%
+    group_modify(function(sdf, i_chr) {
+      k <- group_sizes %>% filter(CHROM == i_chr$CHROM) %>%  pull(q)
+      if(i_chr$CHROM == max_total){
+        k = k + remaining
+      }
+      slice_sample(sdf, n = k, replace = FALSE)
+    }) %>%
+    ungroup()
+  
+    return(filt_gl$gl[,as.vector(out$loc_id)])
+  }
+  
 #' Filter function
 #' 
 #' This function generalizes the filtering functions using the parameter name

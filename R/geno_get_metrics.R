@@ -16,6 +16,57 @@ get_purity <- function(gl, inds) {
   return(comparision)
 }
 
+ibs_matrix_purrr <- function(gl, ploidy) {
+  G <- t(as.matrix(gl))
+  cols <- as.data.frame(G, check.names = FALSE)
+  ids  <- colnames(cols)
+  
+  score_list <- map(cols, function(x)
+    map_dbl(cols, function(y) ibs_dosage(x, y, ploidy)$score)
+  )
+  overlap_list <- map(cols, function(x)
+    map_int(cols, function(y) ibs_dosage(x, y, ploidy)$overlap)
+  )
+  
+  score_mat   <- do.call(cbind, score_list)
+  overlap_mat <- do.call(cbind, overlap_list)
+  
+  rownames(score_mat) <- ids; colnames(score_mat) <- ids
+  rownames(overlap_mat) <- ids; colnames(overlap_mat) <- ids
+  
+  # numeric safety for diagonal (optional)
+  diag(score_mat) <- 1
+  
+  return(list(score = score_mat, overlap = overlap_mat))
+}
+
+ibs_dosage <- function(x, y, ploidy) {
+  if (length(x) != length(y)) stop("x and y must have the same length")
+  if (length(ploidy) != 1 || !is.numeric(ploidy) || ploidy <= 0) {
+    stop("ploidy must be a positive number")
+  }
+  # mask non-missing pairs
+  ok <- !is.na(x) & !is.na(y)
+  n_ok <- sum(ok)
+  if (n_ok == 0L) return(list(score = NA, overlap = 0L))
+  
+  xv <- x[ok]; yv <- y[ok]
+  
+  # locus-wise IBS: 1 - |Δdosage| / P
+  ibs_locus <- 1 - abs(xv - yv) / ploidy
+  # numeric safety clamp
+  ibs_locus <- pmin(pmax(ibs_locus, 0), 1)
+
+  list(score = mean(ibs_locus), overlap = n_ok)
+}
+
+get_paired_IBS <- function(gl, ploidy, n_loci = 100, seed = 7, maf = 0.05,
+                           ind_miss = 0.2, loc_miss = 0.2) {
+  
+  random_gl <- random_select_loci(gl, ind_miss, loc_miss, maf, n_loci, seed)
+  ibs <- ibs_matrix_purrr(random_gl, ploidy)
+  return(ibs)
+}
 
 paired_ind_comparision <- function(gl, x, y) {
   if (length(indNames(gl)) > 2) {
