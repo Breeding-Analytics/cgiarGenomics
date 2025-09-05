@@ -21,26 +21,26 @@ random_select_loci <- function(gl, ind_miss, loc_miss, maf, size, seed){
                       CHROM = filt_gl$gl@chromosome)
   
   group_sizes <- sites %>% 
-    group_by(CHROM) %>% 
-    summarize(total = n()) %>% 
-    mutate(q =floor((size*total)/dim(sites)[1]))
+    dplyr::group_by(CHROM) %>% 
+    dplyr::summarize(total = n()) %>% 
+    dplyr::mutate(q =floor((size*total)/dim(sites)[1]))
   
   remaining <- size - sum(group_sizes$q)
   
   max_total <- group_sizes %>% 
-    filter(total == max(group_sizes$total)) %>% 
-    pull(CHROM)
+    dplyr::filter(total == max(group_sizes$total)) %>% 
+    dplyr::pull(CHROM)
   
   out <- sites %>%
-    group_by(CHROM) %>%
+    dplyr::group_by(CHROM) %>%
     group_modify(function(sdf, i_chr) {
-      k <- group_sizes %>% filter(CHROM == i_chr$CHROM) %>%  pull(q)
+      k <- group_sizes %>% dplyr::filter(CHROM == i_chr$CHROM) %>%  dplyr::pull(q)
       if(i_chr$CHROM == max_total){
         k = k + remaining
       }
-      slice_sample(sdf, n = k, replace = FALSE)
+      dplyr::slice_sample(sdf, n = k, replace = FALSE)
     }) %>%
-    ungroup()
+    dplyr::ungroup()
   
     return(filt_gl$gl[,as.vector(out$loc_id)])
   }
