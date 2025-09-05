@@ -198,9 +198,8 @@ get_all_gt_calls <- function(alleles, ploidity, sep = "") {
 #' @export
 #'
 #' @examples
-#' genotype_calls <- c("AG", "GG", "AA")
-#' convert_gt_to_dosage(genotype_calls, "A")  # Returns list(1, 0, 2)
-#' convert_gt_to_dosage(genotype_calls, "G")  # Returns list(1, 2, 0)
+#' convert_gt_to_dosage(c("AG", "GG", "AA"), "A")  # Returns list(1, 0, 2)
+#' convert_gt_to_dosage(c("AG", "GG", "AA"), "G")  # Returns list(1, 2, 0)
 #' convert_gt_to_dosage(c("AAA", "GGG"), "A", 3)  # Returns list(3, 0) (triploid)
 #' convert_gt_to_dosage(c(NA, "AG"), "A")  # Returns list(NA, 1)
 convert_gt_to_dosage <- function(locus, alt_allele, ploidity = 2,sep="") {
@@ -245,7 +244,9 @@ genocall_to_allelic_dosage <- function(genotype_call, alt_allele, ploidity = 2,s
   if (!is.na(nchar(genotype_call))) {
     # remove separators (and normalize phasing if present)
     genotype_call <- gsub("\\|", sep, genotype_call)
-    genotype_call <- gsub(sep, "", genotype_call, fixed = TRUE)
+    if(sep != ""){
+      genotype_call <- gsub(sep, "", genotype_call, fixed = TRUE)
+    }
     # Genotype call successfully genotyped
     allele_length <- nchar(genotype_call) / ploidity
     
