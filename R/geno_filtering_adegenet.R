@@ -33,7 +33,7 @@ random_select_loci <- function(gl, ind_miss, loc_miss, maf, size, seed){
   
   out <- sites %>%
     dplyr::group_by(CHROM) %>%
-    group_modify(function(sdf, i_chr) {
+    dplyr::group_modify(function(sdf, i_chr) {
       k <- group_sizes %>% dplyr::filter(CHROM == i_chr$CHROM) %>%  dplyr::pull(q)
       if(i_chr$CHROM == max_total){
         k = k + remaining
