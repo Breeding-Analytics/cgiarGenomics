@@ -60,6 +60,13 @@ ibs_dosage <- function(x, y, ploidy) {
   list(score = mean(ibs_locus), overlap = n_ok)
 }
 
+get_paired_IBS <- function(gl, ploidy, n_loci = 100, seed = 7, maf = 0.05,
+                           ind_miss = 0.2, loc_miss = 0.2) {
+  random_gl <- random_select_loci(gl, ind_miss, loc_miss, maf, n_loci, seed)
+  ibs <- ibs_matrix_purrr(random_gl, ploidy)
+  return(ibs)
+}
+
 paired_ind_comparision <- function(gl, x, y) {
   if (length(indNames(gl)) > 2) {
     cli::cli_abort("gl have more than two inds, not paired")
