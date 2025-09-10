@@ -132,7 +132,7 @@ get_allelic_dosage <- function(l, alleles, ploidity, sep = "") {
   # All possible genotype calls
   possible_gt_calls <- get_all_gt_calls(alleles_c, ploidity, sep)
   # Get dosage given the alternative allele
-  possible_dosage <- convert_gt_to_dosage(possible_gt_calls, alleles_c[2], ploidity)
+  possible_dosage <- convert_gt_to_dosage(possible_gt_calls, alleles_c[2], ploidity,sep)
   dosages <- replace_strings_with_integers(possible_dosage, l)
   return(dosages)
 }
@@ -198,16 +198,16 @@ get_all_gt_calls <- function(alleles, ploidity, sep = "") {
 #' @export
 #'
 #' @examples
-#' genotype_calls <- c("AG", "GG", "AA")
-#' convert_gt_to_dosage(genotype_calls, "A")  # Returns list(1, 0, 2)
-#' convert_gt_to_dosage(genotype_calls, "G")  # Returns list(1, 2, 0)
+#' convert_gt_to_dosage(c("AG", "GG", "AA"), "A")  # Returns list(1, 0, 2)
+#' convert_gt_to_dosage(c("AG", "GG", "AA"), "G")  # Returns list(1, 2, 0)
 #' convert_gt_to_dosage(c("AAA", "GGG"), "A", 3)  # Returns list(3, 0) (triploid)
 #' convert_gt_to_dosage(c(NA, "AG"), "A")  # Returns list(NA, 1)
-convert_gt_to_dosage <- function(locus, alt_allele, ploidity = 2) {
+convert_gt_to_dosage <- function(locus, alt_allele, ploidity = 2,sep="") {
   l <- sapply(locus,
               genocall_to_allelic_dosage,
               alt_allele = alt_allele,
-              ploidity = ploidity)
+              ploidity = ploidity,
+              sep=sep)
   return(l)
 }
 
@@ -240,8 +240,13 @@ convert_gt_to_dosage <- function(locus, alt_allele, ploidity = 2) {
 #' genocall_to_allelic_dosage("GG", "A")  # Returns 0
 #' genocall_to_allelic_dosage("AAA", "A", 3)  # Returns 3 (triploid)
 #' genocall_to_allelic_dosage(NA, "A")  # Returns NA
-genocall_to_allelic_dosage <- function(genotype_call, alt_allele, ploidity = 2) {
+genocall_to_allelic_dosage <- function(genotype_call, alt_allele, ploidity = 2,sep="") {
   if (!is.na(nchar(genotype_call))) {
+    # remove separators (and normalize phasing if present)
+    genotype_call <- gsub("\\|", sep, genotype_call)
+    if(sep != ""){
+      genotype_call <- gsub(sep, "", genotype_call, fixed = TRUE)
+    }
     # Genotype call successfully genotyped
     allele_length <- nchar(genotype_call) / ploidity
     

@@ -37,3 +37,7 @@ sdict <- data.frame(sample_id = indNames(gl), designation_id = indNames(gl))
 sdict[1:5, "designation_id"] <- "dup_test"
 
 out <- merge_duplicate_inds(gl, sdict)
+
+# Hexaploid ---------------------------------------------------------------
+input_file <- "tests/vcf_fmt/test3.vcf"
+gl <- read_vcf(input_file, ploidity = 6)
