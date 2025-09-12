@@ -245,7 +245,9 @@ genocall_to_allelic_dosage <- function(genotype_call, alt_allele, ploidity = 2,s
   if (!is.na(nchar(genotype_call))) {
     # remove separators (and normalize phasing if present)
     genotype_call <- gsub("\\|", sep, genotype_call)
-    genotype_call <- gsub(sep, "", genotype_call, fixed = TRUE)
+    if (!is.na(sep) && nzchar(sep)) {
+      genotype_call <- gsub(sep, "", genotype_call, fixed = TRUE)
+    }
     # Genotype call successfully genotyped
     allele_length <- nchar(genotype_call) / ploidity
     
