@@ -15,7 +15,7 @@ ibs_matrix_purrr <- function(gl, ploidy) {
   overlaps_list <- purrr::map(cols, function(x)
     purrr::map_int(cols, function(y) ibs_dosage(x, y, ploidy)$overlap)
   )
-  overlap_mat   <- do.call(cbind, overlaps_lis)
+  overlap_mat   <- do.call(cbind, overlaps_list)
   rownames(overlap_mat) <- ids
   colnames(overlap_mat) <- ids
   return(list(ibs = score_mat, overlap = overlap_mat))
