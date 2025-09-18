@@ -1,43 +1,24 @@
-
 # Purity Metrics ----------------------------------------------------------
-get_purity <- function(gl, inds) {
-  if (sum(inds %in% indNames(gl)) < length(inds)) {
-   cli::cli_abort("At least one duplicated ind not in gl")
-  }
-  ind_idx <- which(inds %in% indNames(gl))
-  cmb <- combn(inds, 2)
-  ind_x  <- cmb[1, ]
-  ind_y <- cmb[2, ]
-  comparision <- purrr::map2_dfr(ind_x, ind_y, ~{
-    ind_idx <- which(indNames(gl) %in% c(.x,.y))
-    pair_gl <- gl[ind_idx,]
-    paired_ind_comparision(pair_gl,.x,.y)
-  })
-  return(comparision)
-}
-
 ibs_matrix_purrr <- function(gl, ploidy) {
   G <- t(as.matrix(gl))
   cols <- as.data.frame(G, check.names = FALSE)
   ids  <- colnames(cols)
-  
-  score_list <- map(cols, function(x)
-    map_dbl(cols, function(y) ibs_dosage(x, y, ploidy)$score)
+  score_list <- purrr::map(cols, function(x)
+    purrr::map_dbl(cols, function(y) ibs_dosage(x, y, ploidy)$score)
   )
-  overlap_list <- map(cols, function(x)
-    map_int(cols, function(y) ibs_dosage(x, y, ploidy)$overlap)
-  )
-  
   score_mat   <- do.call(cbind, score_list)
-  overlap_mat <- do.call(cbind, overlap_list)
-  
-  rownames(score_mat) <- ids; colnames(score_mat) <- ids
-  rownames(overlap_mat) <- ids; colnames(overlap_mat) <- ids
-  
+  rownames(score_mat) <- ids
+  colnames(score_mat) <- ids
   # numeric safety for diagonal (optional)
   diag(score_mat) <- 1
   
-  return(list(score = score_mat, overlap = overlap_mat))
+  overlaps_list <- purrr::map(cols, function(x)
+    purrr::map_int(cols, function(y) ibs_dosage(x, y, ploidy)$overlap)
+  )
+  overlap_mat   <- do.call(cbind, overlaps_lis)
+  rownames(overlap_mat) <- ids
+  colnames(overlap_mat) <- ids
+  return(list(ibs = score_mat, overlap = overlap_mat))
 }
 
 ibs_dosage <- function(x, y, ploidy) {
@@ -59,35 +40,6 @@ ibs_dosage <- function(x, y, ploidy) {
 
   list(score = mean(ibs_locus), overlap = n_ok)
 }
-
-get_paired_IBS <- function(gl, ploidy, n_loci = 100, seed = 7, maf = 0.05,
-                           ind_miss = 0.2, loc_miss = 0.2) {
-  random_gl <- random_select_loci(gl, ind_miss, loc_miss, maf, n_loci, seed)
-  ibs <- ibs_matrix_purrr(random_gl, ploidy)
-  return(ibs)
-}
-
-paired_ind_comparision <- function(gl, x, y) {
-  if (length(indNames(gl)) > 2) {
-    cli::cli_abort("gl have more than two inds, not paired")
-  }
-  inf_loc_idx <- unname(which(get_loc_missing(gl) == 0))
-  tgt_gl <- gl[,inf_loc_idx]
-  mt <- as.matrix(tgt_gl)
-  ploidity_lvl <- max(adegenet::ploidy(gl))
-  hom_comp_idx <- which(colSums(mt) %in% c(0, 2*ploidity_lvl))
-  het_comp_idx <- which(!colSums(mt) %in% c(0, 2*ploidity_lvl))
-  
-  hom_diff <- sum(mt[1,hom_comp_idx] != mt[2,hom_comp_idx])
-  het_diff <- sum(mt[1,het_comp_idx] != mt[2,het_comp_idx])
-  out <- data.frame(ind1 = x,
-                    ind2 = y,
-              sites = dim(mt)[2],
-              hom_diff = hom_diff,
-              het_diff = het_diff)
-  return(out)
-}
-
 
 # Missingness metrics -----------------------------------------------------
 

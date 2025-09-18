@@ -28,6 +28,12 @@ imp_gl <- impute_gl(filt_gl$gl,
                     method = 'frequency')
 
 
+# Dup detect --------------------------------------------------------------
+dup_out <- get_paired_IBS(gl, ploidity_lvl, n_loci = 1000, seed = 7, maf = 0.1,
+                           ind_miss = 0.2, loc_miss = 0.2)
+rand <- cgiarGenomics::random_select_loci(gl, 0.2, 0.2, 0.1, 1000, 7)
+tg_rand <- rand[1:5, ]
+ibs <- ibs_matrix_purrr(tg_rand, ploidity_lvl)
 # Purity Tests ------------------------------------------------------------
 
 dups <- c("LH195/PHK76", "W10004_0007/PHK76", "LH244/PHK76", "B37/MO17")

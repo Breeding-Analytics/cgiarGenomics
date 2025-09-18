@@ -13,6 +13,6 @@ export(read_hapmap, read_vcf, read_DArTSeq_SNP,
        get_overall_summary, apply_bioflow_modifications, impute_gl,
        set_fraction_na, get_accuracy,
        merge_duplicate_inds,
-       get_paired_IBS)
+       random_select_loci, ibs_matrix_purrr)
 
 
