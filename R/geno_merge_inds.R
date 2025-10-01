@@ -22,7 +22,7 @@ merge_duplicate_inds <- function(gl, sample_dictionary) {
   
   single_samples <- sample_dictionary %>% 
     dplyr::group_by(designation_id) %>% 
-    dplyr::filter(n() == 1) %>% 
+    dplyr::filter(dplyr::n() == 1) %>% 
     dplyr::ungroup() %>% 
     dplyr::pull(designation_id)
 
