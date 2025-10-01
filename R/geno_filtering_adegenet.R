@@ -1,3 +1,50 @@
+random_select_loci <- function(gl, ind_miss, loc_miss, maf, size, seed){
+  
+  if (!is.null(seed)) set.seed(seed)
+  
+  filter_1 <- list("ind_miss", "<=", ind_miss)
+  filter_2 <- list("loc_miss", "<=", loc_miss)
+  filter_3 <- list("maf", ">", maf)
+  
+  filtering_steps <- list(
+    filter_1,
+    filter_2,
+    filter_3)
+  
+  filt_seq <- lapply(filtering_steps, function(x){
+    setNames(as.list(x), c("param", "operator", "threshold"))
+  })
+  
+  filt_gl <- apply_sequence_filtering(gl, filt_seq)
+  
+  sites <- data.frame(loc_id = adegenet::locNames(filt_gl$gl),
+                      CHROM = filt_gl$gl@chromosome)
+  
+  group_sizes <- sites %>% 
+    dplyr::group_by(CHROM) %>% 
+    dplyr::summarize(total = dplyr::n()) %>% 
+    dplyr::mutate(q =floor((size*total)/dim(sites)[1]))
+  
+  remaining <- size - sum(group_sizes$q)
+  
+  max_total <- group_sizes %>% 
+    dplyr::filter(total == max(group_sizes$total)) %>% 
+    dplyr::pull(CHROM)
+  
+  out <- sites %>%
+    dplyr::group_by(CHROM) %>%
+    dplyr::group_modify(function(sdf, i_chr) {
+      k <- group_sizes %>% dplyr::filter(CHROM == i_chr$CHROM) %>%  dplyr::pull(q)
+      if(i_chr$CHROM == max_total){
+        k = k + remaining
+      }
+      dplyr::slice_sample(sdf, n = k, replace = FALSE)
+    }) %>%
+    dplyr::ungroup()
+  
+    return(filt_gl$gl[,as.vector(out$loc_id)])
+  }
+  
 #' Filter function
 #' 
 #' This function generalizes the filtering functions using the parameter name
