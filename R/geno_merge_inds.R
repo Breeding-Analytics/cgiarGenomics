@@ -26,7 +26,7 @@ merge_duplicate_inds <- function(gl, sample_dictionary) {
   
   dup_mt <- dup_samples %>% 
     split(.$designation_id) %>% 
-    map(~{
+    purrr::map(~{
       ind_idx <- which(.x$sample_id %in% indNames(gl))
       smt <- as.matrix(gl[ind_idx,])
       collapse_inds(smt)
