@@ -12,4 +12,4 @@ Suggests: parallel
 remotes:
   bioc::3.19/SNPRelate,
   bioc::3.21/snpStats
-RoxygenNote: 7.3.2
+Config/roxygen2/version: 8.0.0

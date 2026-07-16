@@ -76,25 +76,34 @@ i_rf_impute <- function(target, predictors, ntree = 100, seed = NULL) {
   
   # If no missing data, return as-is
   if (n_miss == 0) {
-    return(target)
+    return(NA)
   }
   
   # If no predictors available, return unchanged
   if (ncol(predictors) == 0) {
-    return(target)
+    return(NA)
   }
   
   # Find indices where target is not NA AND predictors are complete (for training)
   pred_complete <- which(complete.cases(predictors))
   train_idx <- pred_complete[!is.na(target[pred_complete])]
   
+
   if (length(train_idx) < 2) {
     # Not enough training data
-    return(target)
+    return(NA)
   }
+  
   
   # Filter target and predictors to training indices
   target_train <- target[train_idx]
+  
+  
+  if (length(unique(target_train)) == 1) {
+    # Target snp to be predicted only have one allele present. Use freq impute predicition
+    return(NA)
+  }
+  
   predictors_train <- predictors[train_idx, , drop = FALSE]
   
   # Train random forest on non-missing observations
@@ -104,23 +113,19 @@ i_rf_impute <- function(target, predictors, ntree = 100, seed = NULL) {
     ntree = ntree,
     na.action = na.omit
   )
+
   
-  # For prediction, use only samples where predictors are complete
-  # (missing predictor values prevent accurate predictions)
-  pred_idx_complete <- which(complete.cases(predictors[miss_idx, , drop = FALSE]))
-  
-  if (length(pred_idx_complete) > 0) {
+  if (length(miss_idx) > 0) {
     # Predict for samples with complete predictor data
-    predictors_miss_complete <- predictors[miss_idx[pred_idx_complete], , drop = FALSE]
+    predictors_miss_complete <- predictors[miss_idx, , drop = FALSE]
     predictions <- stats::predict(rf_model, newdata = predictors_miss_complete)
     
     # Round predictions to nearest integer (genotype call)
-    predictions <- round(predictions)
+    # predictions <- round(predictions)
     
     # Assign predictions only to positions with complete predictors
-    target[miss_idx[pred_idx_complete]] <- predictions
+    target[miss_idx] <- predictions
   }
-  
   return(target)
 }
 
@@ -137,10 +142,15 @@ i_rf_impute <- function(target, predictors, ntree = 100, seed = NULL) {
 #'
 #' @return List where names are dosage values and elements are linear indices of NA positions
 #' @keywords internal
-rf_impute <- function(gl, nflank = 100, ntree = 100, seed = NULL) {
+rf_impute <- function(gl, ploidity = 2, nflank = 100, ntree = 100, seed = NULL) {
+  
+  # impute with frequency to get a filled predictors matrix
+  pred_gl <- impute_gl(gl, ploidity, method = "frequency")$gl
+  pred_mt <- as.matrix(pred_gl)
+  
   mt <- as.matrix(gl)
-  n_markers <- nrow(mt)
-  n_samples <- ncol(mt)
+  n_markers <- ncol(mt)
+  n_samples <- nrow(mt)
   
   # Get chromosome information for each marker
   chr <- adegenet::chromosome(gl)
@@ -151,7 +161,7 @@ rf_impute <- function(gl, nflank = 100, ntree = 100, seed = NULL) {
   # Process each marker
   for (i_marker in seq_len(n_markers)) {
     # Check if marker has missing data
-    target <- mt[i_marker, ]
+    target <- mt[, i_marker]
     n_missing <- sum(is.na(target))
     
     if (n_missing == 0) {
@@ -216,21 +226,22 @@ rf_impute <- function(gl, nflank = 100, ntree = 100, seed = NULL) {
     
     # Get predictor markers
     if (length(flank_idx) > 0) {
-      predictors <- t(mt[flank_idx, ])
+      predictors <- pred_mt[ ,flank_idx]
     } else {
       predictors <- matrix(numeric(0), nrow = n_samples, ncol = 0)
     }
-    
     # Impute using RF
     imputed_target <- i_rf_impute(
-      target = target,
+      target = as.factor(unlist(target)),
       predictors = predictors,
       ntree = ntree,
       seed = seed
     )
-    
+    if(length(imputed_target) == 1){
+      imputed_target <- pred_mt[,i_marker]
+    }
     # Update matrix with imputed values
-    mt[i_marker, ] <- imputed_target
+    mt[,i_marker] <- imputed_target
   }
   
   # Build imputation dictionary: group by imputed dosage values
@@ -262,7 +273,7 @@ rf_impute <- function(gl, nflank = 100, ntree = 100, seed = NULL) {
 #' @export
 #'
 #' @examples
-impute_gl <- function(gl, ploidity = 2, method = 'frequency', nflank = 100, ntree = 100, seed = NULL){
+impute_gl <- function(gl, ploidity = 2, method, ...){
   
   loci_all_nas <- adegenet::glNA(gl)/ploidity == adegenet::nInd(gl)
   
@@ -274,7 +285,8 @@ impute_gl <- function(gl, ploidity = 2, method = 'frequency', nflank = 100, ntre
     mt <- as.matrix(gl)
   }
   
-  
+  dots <- list(...)
+  print(dots)
   nas_number <- sum(adegenet::glNA(gl))/ploidity
   number_imputations <- nas_number - (sum(loci_all_nas) * adegenet::nInd(gl))
   
@@ -283,12 +295,38 @@ impute_gl <- function(gl, ploidity = 2, method = 'frequency', nflank = 100, ntre
   
   cli::cli_inform("Missing genotype calls {number_imputations}")
   
+  
+  method <- match.arg(
+    method,
+    choices = c("frequency", "random_forest", "beagle")
+  )
+  
   if(method == 'frequency'){
     imp_dict <- freq_impute(gl, mt, ploidity)
   } else if(method == 'random_forest'){
-    cli::cli_inform("Imputing with Random Forest (nflank={nflank}, ntree={ntree})")
-    imp_dict <- rf_impute(gl, nflank = nflank, ntree = ntree, seed = seed)
-  } else {
+    allowed <- c("nflank", 'ntree', 'seed')
+    check_method_args(
+      dots = dots,
+      allowed = allowed,
+      required = character(),
+      method = method
+    )
+    cli::cli_inform("Imputing with Random Forest (nflank={dots$nflank}, ntree={dots$ntree})")
+    imp_dict <- do.call(rf_impute, c(list(gl = gl,
+                                     ploidity = ploidity), dots))
+      
+  } else if(method == 'beagle'){
+    allowed <- c("jre_path", 'beagle_path', 'memory',
+                 'burnin', 'iterations', 'seed', 'nthreads')
+    check_method_args(
+      dots = dots,
+      allowed = allowed,
+      required = character(),
+      method = method
+    )
+    imp_dict <- do.call(impute_beagle, c(list(gl = gl), dots))
+  }
+  else {
     cli::cli_abort("Unknown imputation method: {method}. Use 'frequency' or 'random_forest'")
   }
   
@@ -306,7 +344,6 @@ impute_gl <- function(gl, ploidity = 2, method = 'frequency', nflank = 100, ntre
   
   adegenet::alleles(imp_gl) <- adegenet::alleles(gl)
   imp_gl <- recalc_metrics(imp_gl)
-  
   return(list(gl = imp_gl, log = imp_dict))
 }
 
@@ -378,5 +415,93 @@ get_accuracy <- function(ref_gl, imp_gl){
   return(accuracy)
 }
 
-
-
+#' Impute missing genotypes using Beagle
+#'
+#' This function converts a genlight object to a VCF file, runs Beagle for imputation using the specified JRE,
+#' reads the imputed VCF back, and returns the imputed genlight object.
+#'
+#' @param gl A genlight object of exclusively diploid ploidity level.
+#' @param jre_path String. Path to the Java JRE directory.
+#' @param beagle_path String. Path to the Beagle JAR file.
+#' @param memory String. Allowed memory for JVM. Default is "Xmx1g".
+#' @param burnin Integer. Number of burn-in iterations. Default is 3.
+#' @param iterations Integer. Number of phasing iterations. Default is 12.
+#' @param seed Integer. Seed for the random number generator. Default is -99999.
+#' @param nthreads Integer. Number of threads to use. Default is 16.
+#'
+#' @return A genlight object with imputed genotypes.
+#' @export
+impute_beagle <- function(gl, jre_path, beagle_path, memory = "Xmx1g",
+                          burnin = 3, iterations = 12, seed = -99999, nthreads = 16) {
+  
+  if (!inherits(gl, "genlight")) {
+    cli::cli_abort("`gl` must be a genlight object.")
+  }
+  
+  p_ind <- adegenet::ploidy(gl)
+  if (any(p_ind != 2)) {
+    cli::cli_abort("The genlight object must be exclusively diploid.")
+  }
+  
+  if (!file.exists(beagle_path)) {
+    cli::cli_abort("`beagle_path` does not exist: {beagle_path}")
+  }
+  
+  java_exe <- file.path(jre_path, "bin", "java")
+  if (.Platform$OS.type == "windows") {
+    java_exe <- paste0(java_exe, ".exe")
+  }
+  if (!file.exists(java_exe)) {
+    if (file.exists(jre_path) && file.info(jre_path)$isdir == FALSE) {
+      java_exe <- jre_path
+    } else {
+      cli::cli_abort("Could not find java executable at {java_exe} or {jre_path}")
+    }
+  }
+  
+  if (!startsWith(memory, "-")) {
+    memory <- paste0("-", memory)
+  }
+  
+  input_vcf <- tempfile(pattern = "beagle_in_", fileext = ".vcf.gz")
+  out_prefix <- tempfile(pattern = "beagle_out_")
+  output_vcf <- paste0(out_prefix, ".vcf.gz")
+  output_log <- paste0(out_prefix, ".log")
+  
+  on.exit({
+    if (file.exists(input_vcf)) unlink(input_vcf)
+    if (file.exists(output_vcf)) unlink(output_vcf)
+    if (file.exists(output_log)) unlink(output_log)
+  }, add = TRUE)
+  
+  # Convert the gl to a vcf using write_vcf (located in utils.R)
+  write_vcf(gl, input_vcf, na_rep = "./.")
+  
+  # Construct Beagle command using sprintf
+  cmd <- sprintf('"%s" %s -jar "%s" gt="%s" out="%s" burnin=%d iterations=%d seed=%d nthreads=%d',
+                 java_exe, memory, beagle_path, input_vcf, out_prefix,
+                 burnin, iterations, seed, nthreads)
+  
+  cli::cli_inform("Executing command: {cmd}")
+  
+  # Execute call
+  status <- system(cmd)
+  if (status != 0) {
+    cli::cli_abort("Beagle execution failed with exit status {status}")
+  }
+  
+  if (!file.exists(output_vcf)) {
+    cli::cli_abort("Expected Beagle output VCF file not found at {output_vcf}")
+  }
+  
+  # Read back with cgiarGenomics read_vcf
+  imputed_gl <- read_vcf(output_vcf, ploidity = 2, na_reps = ".", sep = "\\|")
+  
+  
+  idx_na <- which(is.na(as.matrix(gl)))
+  if (length(idx_na) > 0) {
+    imputed_values <- as.matrix(imputed_gl)[idx_na]
+    imp_dict <- split(idx_na, imputed_values)
+  }
+  return(imp_dict)
+}

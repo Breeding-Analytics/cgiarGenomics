@@ -161,6 +161,7 @@ get_allelic_dosage <- function(l, alleles, ploidity, sep = "") {
 #' get_all_gt_calls(c("A", "B", "C"), 3)  # Returns all 27 possible triploid calls
 #' get_all_gt_calls(c("A"), 1)  # Returns c("A")
 get_all_gt_calls <- function(alleles, ploidity, sep = "") {
+  sep <- gsub("\\\\", "", sep)
   generate_calls <- function(prefix, ploidity, del = sep) {
     if (ploidity == 0) {
       if(nchar(sep) > 0){
@@ -203,6 +204,7 @@ get_all_gt_calls <- function(alleles, ploidity, sep = "") {
 #' convert_gt_to_dosage(c("AAA", "GGG"), "A", 3)  # Returns list(3, 0) (triploid)
 #' convert_gt_to_dosage(c(NA, "AG"), "A")  # Returns list(NA, 1)
 convert_gt_to_dosage <- function(locus, alt_allele, ploidity = 2,sep="") {
+  sep <- gsub("\\\\", "", sep)
   l <- sapply(locus,
               genocall_to_allelic_dosage,
               alt_allele = alt_allele,

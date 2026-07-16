@@ -40,3 +40,5 @@ tests/*.R
 .DS_Store
 test/.DS_Store
 cgiarGenomics.Rproj
+.positai
+.agents/

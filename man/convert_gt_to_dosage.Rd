@@ -4,7 +4,7 @@
 \alias{convert_gt_to_dosage}
 \title{Given a list of genotype calls, get the dosage of each one}
 \usage{
-convert_gt_to_dosage(locus, alt_allele, ploidity = 2)
+convert_gt_to_dosage(locus, alt_allele, ploidity = 2, sep = "")
 }
 \arguments{
 \item{locus}{List. A list of genotype calls, e.g., c("AG", "GG", "AA").}
@@ -23,9 +23,8 @@ of the organism as input, and returns a list of allelic dosages corresponding to
 genotype call in the input list.
 }
 \examples{
-genotype_calls <- c("AG", "GG", "AA")
-convert_gt_to_dosage(genotype_calls, "A")  # Returns list(1, 0, 2)
-convert_gt_to_dosage(genotype_calls, "G")  # Returns list(1, 2, 0)
+convert_gt_to_dosage(c("AG", "GG", "AA"), "A")  # Returns list(1, 0, 2)
+convert_gt_to_dosage(c("AG", "GG", "AA"), "G")  # Returns list(1, 2, 0)
 convert_gt_to_dosage(c("AAA", "GGG"), "A", 3)  # Returns list(3, 0) (triploid)
 convert_gt_to_dosage(c(NA, "AG"), "A")  # Returns list(NA, 1)
 }

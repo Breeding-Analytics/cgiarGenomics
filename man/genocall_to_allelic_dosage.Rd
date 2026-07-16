@@ -4,7 +4,7 @@
 \alias{genocall_to_allelic_dosage}
 \title{Genotype call to allelic dosage of alternative allele}
 \usage{
-genocall_to_allelic_dosage(genotype_call, alt_allele, ploidity = 2)
+genocall_to_allelic_dosage(genotype_call, alt_allele, ploidity = 2, sep = "")
 }
 \arguments{
 \item{genotype_call}{String. Genotype call, e.g., "AG", "AAA" (for triploid).}

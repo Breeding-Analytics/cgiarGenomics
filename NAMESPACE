@@ -1,7 +1,7 @@
 importFrom("magrittr","%>%")
 import(stringr)
 
-export(read_hapmap, read_vcf, read_DArTSeq_SNP,
+export(read_hapmap, read_vcf, write_vcf, read_DArTSeq_SNP,
        read_DArTag_count_dosage,
        get_allelic_dosage,
        get_ind_missing, get_loc_missing,
@@ -10,7 +10,7 @@ export(read_hapmap, read_vcf, read_DArTSeq_SNP,
        get_ind_heterozygosity, recalc_metrics,
        apply_sequence_filtering,
        filter_gl,get_parameter_margin,
-       get_overall_summary, apply_bioflow_modifications, impute_gl,
+       get_overall_summary, apply_bioflow_modifications, impute_gl, impute_beagle,
        set_fraction_na, get_accuracy,
        merge_duplicate_inds,
        random_select_loci, ibs_matrix_purrr)

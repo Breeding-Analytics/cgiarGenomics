@@ -12,17 +12,6 @@ read_one_row_dart_gt_data(
   snp_id_col
 )
 }
-\arguments{
-\item{path}{}
-
-\item{sample.name.row}{}
-
-\item{first.data.row}{}
-
-\item{first.data.col}{}
-
-\item{snp_id_col}{}
-}
 \description{
 This function takes as input a path a DArT file where each variant is coded
 in a single line. It splits the metadata and the allelic dosages.

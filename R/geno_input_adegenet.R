@@ -127,7 +127,7 @@ read_genolcsv <- function(path,
 #' read_hapmap("path/to/hapmap/file.txt")
 #' read_hapmap("path/to/hapmap/file.txt", ploidity = 4)
 #' read_hapmap("path/to/hapmap/file.txt", sep = "|")
-read_hapmap <- function(path, ploidity = 2, sep = c("","/","|")) {
+read_hapmap <- function(path, ploidity = 2, sep = "") {
   # Validate arguments
   if (!file.exists(path)){
     cli::cli_abort("`path` don't exist. Verify if is writed properly {path}")
@@ -135,7 +135,10 @@ read_hapmap <- function(path, ploidity = 2, sep = c("","/","|")) {
   if (!rlang::is_integerish(ploidity)) {
     cli::cli_abort("`ploidity` must be a round number not {ploidity}")
   }
-  sep = match.arg(sep)
+  
+  if (!sep %in% c("", "/", "|")) {
+    stop("sep must be '', '/', or '|'")
+  }
   
   
   # Read the genotype data from the tabular file
@@ -263,12 +266,10 @@ read_vcf <- function(path, ploidity = 2, na_reps = c("-", "./."), sep="/") {
     idx <- which(mt %in% na_reps)
     mt[idx] <- NA
   }
-  
   # check ploidity
   mt_gt_str <- matrix(gsub(sep, "", mt), nrow = dim(mt)[1], ncol = dim(mt)[2])
   gc_len <- purrr::map_int(mt_gt_str, function(x){max(nchar(x))})
   max_dosage <- max(gc_len, na.rm = TRUE)
-  
   if(max_dosage < ploidity){
     cli::cli_warn("Max dosage ({max_dosage}) lower than ploidy lvl ({ploidity})")
   }
@@ -279,7 +280,7 @@ read_vcf <- function(path, ploidity = 2, na_reps = c("-", "./."), sep="/") {
   
   individuals <- rownames(mt)
   
-  allele_set <- paste(meta$ref[!meta$filter], meta$alt[!meta$filter], sep=sep)
+  allele_set <- paste(meta$ref[!meta$filter], meta$alt[!meta$filter], sep="/")
 
   gt <- mapply(function(col, arg, ploidity, sep) get_allelic_dosage(mt[,col], arg,ploidity, sep),
                col = seq(1,dim(mt)[2]), 
