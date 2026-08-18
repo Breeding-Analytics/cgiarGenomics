@@ -480,7 +480,7 @@ impute_beagle <- function(gl, jre_path = NULL, beagle_path = NULL, memory = "Xmx
     if (is.null(java_exe)) {
       cli::cli_abort(c(
         "Java not found on the system.",
-        "i" = "Install Java 8+ from https://adoptium.net",
+        "i" = "Install Java 8+ from https://www.java.com/download/",
         "i" = "Or provide the path explicitly via the `jre_path` argument."
       ))
     }

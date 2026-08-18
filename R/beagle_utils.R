@@ -128,7 +128,7 @@ check_beagle_requirements <- function() {
 
   problems <- character(0)
   if (!java_ok) {
-    problems <- c(problems, "Java not found. Install Java 8+ from https://adoptium.net")
+    problems <- c(problems, "Java not found. Install Java 8+ from https://www.java.com/download/")
   }
   if (!beagle_ok) {
     problems <- c(problems, sprintf(
