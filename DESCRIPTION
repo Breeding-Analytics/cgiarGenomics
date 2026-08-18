@@ -1,15 +1,35 @@
 Package: cgiarGenomics
 Type: Package
 Title: Base functions for management of genomic data
-Version: 1.0.1
+Version: 1.0.2
 Date: 2022-09-09
 Author: Sergio
 Maintainer: Sergio <s.cruz@cgiar.org>
 Description: Software for genomics applications
-Depends: R (>= 3.5.0), adegenet, magrittr, dplyr, stringr, vcfR, dartR.base, ggplot2, purrr, SNPRelate, randomForest
 License: GPL (>= 2)
-Suggests: parallel
-remotes:
-  bioc::3.19/SNPRelate,
-  bioc::3.21/snpStats
+Depends:
+    R (>= 3.5.0),
+    adegenet
+Imports:
+    cli,
+    data.table,
+    dplyr,
+    ggplot2,
+    ggrepel,
+    glue,
+    magrittr,
+    Matrix,
+    methods,
+    purrr,
+    rlang,
+    scales,
+    stats,
+    stringr,
+    tidyr,
+    utils
+Suggests:
+    vcfR,
+    randomForest,
+    dartR.base,
+    parallel
 Config/roxygen2/version: 8.0.0

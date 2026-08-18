@@ -144,6 +144,8 @@ i_rf_impute <- function(target, predictors, ntree = 100, seed = NULL) {
 #' @keywords internal
 rf_impute <- function(gl, ploidity = 2, nflank = 100, ntree = 100, seed = NULL) {
   
+  require_optional("randomForest")
+  
   # impute with frequency to get a filled predictors matrix
   pred_gl <- impute_gl(gl, ploidity, method = "frequency")$gl
   pred_mt <- as.matrix(pred_gl)
@@ -417,22 +419,34 @@ get_accuracy <- function(ref_gl, imp_gl){
 
 #' Impute missing genotypes using Beagle
 #'
-#' This function converts a genlight object to a VCF file, runs Beagle for imputation using the specified JRE,
-#' reads the imputed VCF back, and returns the imputed genlight object.
+#' This function converts a genlight object to a VCF file, runs Beagle for imputation,
+#' reads the imputed VCF back, and returns the imputation dictionary.
+#'
+#' Java and the Beagle JAR are auto-detected by default:
+#' - Java is found via JAVA_HOME or system PATH
+#' - Beagle JAR is found in the package's inst/extdata/ directory
+#'
+#' Both can be overridden manually if needed.
 #'
 #' @param gl A genlight object of exclusively diploid ploidity level.
-#' @param jre_path String. Path to the Java JRE directory.
-#' @param beagle_path String. Path to the Beagle JAR file.
-#' @param memory String. Allowed memory for JVM. Default is "Xmx1g".
+#' @param jre_path String. Path to Java executable or JRE directory. 
+#'   If NULL (default), auto-detected via find_java().
+#' @param beagle_path String. Path to the Beagle JAR file. 
+#'   If NULL (default), auto-detected via find_beagle_jar().
+#' @param memory String. Allowed memory for JVM. Default is "Xmx4g".
 #' @param burnin Integer. Number of burn-in iterations. Default is 3.
 #' @param iterations Integer. Number of phasing iterations. Default is 12.
 #' @param seed Integer. Seed for the random number generator. Default is -99999.
-#' @param nthreads Integer. Number of threads to use. Default is 16.
+#' @param nthreads Integer. Number of threads to use. Default uses get_default_beagle_threads().
 #'
-#' @return A genlight object with imputed genotypes.
+#' @return A list where names are dosage values and elements are linear indices of imputed positions.
 #' @export
-impute_beagle <- function(gl, jre_path, beagle_path, memory = "Xmx1g",
-                          burnin = 3, iterations = 12, seed = -99999, nthreads = 16) {
+impute_beagle <- function(gl, jre_path = NULL, beagle_path = NULL, memory = "Xmx4g",
+                          burnin = 3, iterations = 12, seed = -99999, nthreads = NULL) {
+  
+  # Beagle round-trips through VCF, so vcfR is needed. Check up front rather
+  # than after a potentially long Beagle run.
+  require_optional("vcfR")
   
   if (!inherits(gl, "genlight")) {
     cli::cli_abort("`gl` must be a genlight object.")
@@ -442,21 +456,54 @@ impute_beagle <- function(gl, jre_path, beagle_path, memory = "Xmx1g",
   if (any(p_ind != 2)) {
     cli::cli_abort("The genlight object must be exclusively diploid.")
   }
-  
-  if (!file.exists(beagle_path)) {
-    cli::cli_abort("`beagle_path` does not exist: {beagle_path}")
-  }
-  
-  java_exe <- file.path(jre_path, "bin", "java")
-  if (.Platform$OS.type == "windows") {
-    java_exe <- paste0(java_exe, ".exe")
-  }
-  if (!file.exists(java_exe)) {
-    if (file.exists(jre_path) && file.info(jre_path)$isdir == FALSE) {
-      java_exe <- jre_path
-    } else {
-      cli::cli_abort("Could not find java executable at {java_exe} or {jre_path}")
+
+  # Auto-detect Beagle JAR if not provided
+  if (is.null(beagle_path)) {
+    beagle_path <- find_beagle_jar()
+    if (is.null(beagle_path)) {
+      cli::cli_abort(c(
+        "Beagle JAR not found.",
+        "i" = "Place the Beagle .jar file in: {system.file('extdata', package = 'cgiarGenomics')}",
+        "i" = "Or provide the path explicitly via the `beagle_path` argument."
+      ))
     }
+    cli::cli_inform("Using bundled Beagle JAR: {basename(beagle_path)}")
+  } else {
+    if (!file.exists(beagle_path)) {
+      cli::cli_abort("`beagle_path` does not exist: {beagle_path}")
+    }
+  }
+  
+  # Auto-detect Java if not provided
+  if (is.null(jre_path)) {
+    java_exe <- find_java()
+    if (is.null(java_exe)) {
+      cli::cli_abort(c(
+        "Java not found on the system.",
+        "i" = "Install Java 8+ from https://adoptium.net",
+        "i" = "Or provide the path explicitly via the `jre_path` argument."
+      ))
+    }
+    cli::cli_inform("Using Java: {java_exe}")
+  } else {
+    # Legacy behavior: resolve from jre_path
+    java_exe <- file.path(jre_path, "bin", "java")
+    if (.Platform$OS.type == "windows") {
+      java_exe <- paste0(java_exe, ".exe")
+    }
+    if (!file.exists(java_exe)) {
+      if (file.exists(jre_path) && file.info(jre_path)$isdir == FALSE) {
+        java_exe <- jre_path
+      } else {
+        cli::cli_abort("Could not find java executable at {java_exe} or {jre_path}")
+      }
+    }
+  }
+  
+  # Default threads
+
+  if (is.null(nthreads)) {
+    nthreads <- get_default_beagle_threads()
   }
   
   if (!startsWith(memory, "-")) {

@@ -240,6 +240,8 @@ read_hapmap <- function(path, ploidity = 2, sep = "") {
 #' plot(dat.dose.vcf)
 read_vcf <- function(path, ploidity = 2, na_reps = c("-", "./."), sep="/") {
   
+  require_optional("vcfR")
+  
   if (!file.exists(path)){
     cli::cli_abort("`path` don't exist. Verify if is writed properly {path}")
   }
@@ -317,6 +319,9 @@ read_vcf <- function(path, ploidity = 2, na_reps = c("-", "./."), sep="/") {
 #' @examples
 #' read_DArTSeq_SNP("path/to/dartseq/file.csv", snp_id = "SnpID", chr_name = "Chr", pos_name = "Position")
 read_DArTSeq_SNP <- function(path, snp_id, chr_name, pos_name) {
+  
+  require_optional("dartR.base")
+  
   if (!file.exists(path)){
     cli::cli_abort("`path` don't exist. Verify if is writed properly {path}")
   }
