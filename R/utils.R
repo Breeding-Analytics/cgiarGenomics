@@ -262,3 +262,49 @@ check_method_args <- function(dots, allowed, required, method) {
     )
   }
 }
+
+#' Obtain the markers where child dont meet the mendelian inheritance
+#'
+#' @param gl gl object with no missing data
+#' @param trio df with trios. Is expected columns designation, mother and father
+#'
+#' @return returns a vector with number of impossible markers
+#' @export
+#'
+#' @examples
+get_mendelian_error_counts <- function(gl, trios) {
+  
+  G <- as.matrix(gl)
+  ids <- adegenet::indNames(gl)
+  
+  child_idx <- match(trios$designation, ids)
+  mother_idx <- match(trios$mother, ids)
+  father_idx <- match(trios$father, ids)
+  
+  if (anyNA(c(child_idx, mother_idx, father_idx))) {
+    cli::cli_warn(
+      "At least one individual from the pedigrees is absent from input gl."
+    )
+  }
+  
+  if (anyNA(G)) {
+    cli::cli_abort("Input gl has missing data.")
+  }
+  
+  impossible <- vapply(seq_along(child_idx), function(i) {
+    
+    child <- G[child_idx[i], ]
+    mother <- G[mother_idx[i], ]
+    father <- G[father_idx[i], ]
+    s <- G[mother_idx[i], ] + G[father_idx[i], ]
+    sum(
+      (s == 0 & child != 0) |
+        (s == 4 & child != 2)
+    )
+  }, numeric(1))
+  return(impossible)
+}
+
+
+
+
