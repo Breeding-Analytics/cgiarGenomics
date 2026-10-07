@@ -38,7 +38,7 @@ apply_bioflow_modifications <- function(gl, modifications){
   
   # Filtering modifications
   filt_mods <- modifications %>% 
-    filter(!grepl("^imputation", reason))
+    dplyr::filter(!grepl("^imputation", reason))
   
   
   ind_out <- filt_mods %>% 
