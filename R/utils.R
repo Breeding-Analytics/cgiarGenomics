@@ -262,3 +262,112 @@ check_method_args <- function(dots, allowed, required, method) {
     )
   }
 }
+
+#' Obtain the markers where child dont meet the mendelian inheritance
+#'
+#' @param gl gl object with no missing data
+#' @param trio df with trios. Is expected columns designation, mother and father
+#'
+#' @return returns a vector with number of impossible markers
+#' @export
+#'
+#' @examples
+get_mendelian_error_counts <- function(gl, trios) {
+  # valid trios for diploid late generations
+  valid_trios <- tribble(
+    ~child, ~mother, ~father,
+    0, 0, 0,
+    0, 0, 1,
+    1, 0, 1,
+    1, 0, 2,
+    0, 1, 0,
+    1, 1, 0,
+    0, 1, 1,
+    1, 1, 1,
+    2, 1, 1,
+    1, 1, 2,
+    2, 1, 2,
+    1, 2, 0,
+    1, 2, 1,
+    2, 2, 1,
+    2, 2, 2
+  )
+  
+  valid_keys <- valid_trios %>%
+    transmute(
+      key = paste(child, mother, father, sep = ":")
+    ) %>%
+    pull(key)
+  
+  G <- as.matrix(gl)
+  ids <- adegenet::indNames(gl)
+  
+  child_idx <- match(trios$designation, ids)
+  mother_idx <- match(trios$mother, ids)
+  father_idx <- match(trios$father, ids)
+  
+  out <- trios %>%
+    dplyr::mutate(
+      child_idx = child_idx,
+      mother_idx = mother_idx,
+      father_idx = father_idx,
+      pedigree_present = !is.na(child_idx) &
+        !is.na(mother_idx) &
+        !is.na(father_idx)
+    )
+  
+  stats <- lapply(seq_len(nrow(out)), function(i) {
+    if (!out$pedigree_present[i]) {
+      return(
+        tibble::tibble(
+          n_markers = NA_integer_,
+          n_evaluated = NA_integer_,
+          n_missing = NA_integer_,
+          n_errors = NA_integer_,
+          error_rate = NA_real_
+        )
+      )
+    }
+    
+    child <- G[out$child_idx[i], ]
+    mother <- G[out$mother_idx[i], ]
+    father <- G[out$father_idx[i], ]
+    
+    complete <- !is.na(child) &
+      !is.na(mother) &
+      !is.na(father)
+    
+    key <- paste(child[complete], mother[complete], father[complete], sep = ":")
+    
+    n_markers <- length(child)
+    n_evaluated <- sum(complete)
+    n_missing <- sum(!complete)
+    n_errors <- sum(!key %in% valid_keys)
+    
+    tibble::tibble(
+      n_markers = n_markers,
+      n_evaluated = n_evaluated,
+      n_missing = n_missing,
+      n_errors = n_errors,
+      error_rate = if (n_evaluated > 0) {
+        n_errors / n_evaluated
+      } else {
+        NA_real_
+      }
+    )
+  })
+  
+  out %>%
+    dplyr::bind_cols(dplyr::bind_rows(stats)) %>%
+    dplyr::select(
+      -child_idx,
+      -mother_idx,
+      -father_idx
+    )
+  
+  
+}
+
+
+
+
