@@ -274,26 +274,31 @@ check_method_args <- function(dots, allowed, required, method) {
 #' @examples
 get_mendelian_error_counts <- function(gl, trios) {
   # valid trios for diploid late generations
-  valid_trios <- tribble(
+  invalid_trios <- tribble(
     ~child, ~mother, ~father,
-    0, 0, 0,
-    0, 0, 1,
-    1, 0, 1,
-    1, 0, 2,
-    0, 1, 0,
-    1, 1, 0,
-    0, 1, 1,
-    1, 1, 1,
-    2, 1, 1,
-    1, 1, 2,
-    2, 1, 2,
-    1, 2, 0,
-    1, 2, 1,
-    2, 2, 1,
-    2, 2, 2
+    0, 2, 2,
+    2, 0, 0,
+    1, 0, 0,
+    1, 2, 2
   )
+  # valid trios for F1
+  # 0, 0, 0,
+  # 0, 0, 1,
+  # 1, 0, 1,
+  # 1, 0, 2,
+  # 0, 1, 0,
+  # 1, 1, 0,
+  # 0, 1, 1,
+  # 1, 1, 1,
+  # 2, 1, 1,
+  # 1, 1, 2,
+  # 2, 1, 2,
+  # 1, 2, 0,
+  # 1, 2, 1,
+  # 2, 2, 1,
+  # 2, 2, 2
   
-  valid_keys <- valid_trios %>%
+  invalid_keys <- invalid_trios %>%
     transmute(
       key = paste(child, mother, father, sep = ":")
     ) %>%
@@ -342,8 +347,7 @@ get_mendelian_error_counts <- function(gl, trios) {
     n_markers <- length(child)
     n_evaluated <- sum(complete)
     n_missing <- sum(!complete)
-    n_errors <- sum(!key %in% valid_keys)
-    
+    n_errors <- sum(key %in% invalid_keys)
     tibble::tibble(
       n_markers = n_markers,
       n_evaluated = n_evaluated,
