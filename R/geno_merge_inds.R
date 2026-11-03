@@ -3,6 +3,10 @@ majority_call <- function(x) {
   freq <- table(x)
   if (length(freq) == 0){
     return(NA)
+  } else if (sum(freq == max(freq)) > 1) {
+    # tie between calls (e.g. 0 vs 2): no majority, set missing instead of
+    # silently picking the lowest dosage
+    return(NA)
   } else {
     major <- names(freq)[which.max(freq)]
     return(as.numeric(major))
@@ -32,12 +36,14 @@ merge_duplicate_inds <- function(gl, sample_dictionary) {
   dup_mt <- dup_samples %>% 
     split(.$designation_id) %>% 
     purrr::map(~{
-      ind_idx <- which(.x$sample_id %in% indNames(gl))
+      # rows of gl that belong to this designation (not positions inside .x)
+      ind_idx <- which(indNames(gl) %in% .x$sample_id)
       smt <- as.matrix(gl[ind_idx,])
       collapse_inds(smt)
     }) %>% 
     do.call(rbind, .)
-  rownames(dup_mt) <- unique(dup_samples$designation_id)
+  # split() orders groups by factor levels, so name rows the same way
+  rownames(dup_mt) <- levels(factor(dup_samples$designation_id))
   
   
   if(length(single_samples) > 0) {
@@ -48,7 +54,8 @@ merge_duplicate_inds <- function(gl, sample_dictionary) {
     out_mt <- dup_mt
   }
   colnames(out_mt) <- locNames(gl)
-  merged_gl <- new("genlight", out_mt)
+  # keep the source ploidy (otherwise genlight infers it per individual from max dosage)
+  merged_gl <- new("genlight", out_mt, ploidy = max(adegenet::ploidy(gl)))
   return(merged_gl)  
 }
 
