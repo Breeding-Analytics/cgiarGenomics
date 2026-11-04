@@ -40,6 +40,10 @@ apply_bioflow_modifications <- function(gl, modifications){
   filt_mods <- modifications %>% 
     dplyr::filter(!grepl("^imputation", reason))
   
+  if (dim(filt_mods)[1] == 0) {
+    return(gl)
+  }
+  
   
   ind_out <- filt_mods %>% 
     dplyr::filter(is.na(col)) %>% 
@@ -273,14 +277,16 @@ check_method_args <- function(dots, allowed, required, method) {
 #'
 #' @examples
 get_mendelian_error_counts <- function(gl, trios) {
-  # valid trios for diploid late generations
-  invalid_trios <- tribble(
-    ~child, ~mother, ~father,
-    0, 2, 2,
-    2, 0, 0,
-    1, 0, 0,
-    1, 2, 2
-  )
+  
+  if (any(adegenet::ploidy(gl) != 2)) {
+    cli::cli_abort("Only diploid 0/1/2 dosages are supported.")
+  }
+  # # invalid trios for diploid late generations
+  #   0, 2, 2,
+  #   2, 0, 0,
+  #   1, 0, 0,
+  #   1, 2, 2
+  # 
   # valid trios for F1
   # 0, 0, 0,
   # 0, 0, 1,
@@ -298,12 +304,6 @@ get_mendelian_error_counts <- function(gl, trios) {
   # 2, 2, 1,
   # 2, 2, 2
   
-  invalid_keys <- invalid_trios %>%
-    transmute(
-      key = paste(child, mother, father, sep = ":")
-    ) %>%
-    pull(key)
-  
   G <- as.matrix(gl)
   ids <- adegenet::indNames(gl)
   
@@ -311,65 +311,30 @@ get_mendelian_error_counts <- function(gl, trios) {
   mother_idx <- match(trios$mother, ids)
   father_idx <- match(trios$father, ids)
   
-  out <- trios %>%
-    dplyr::mutate(
-      child_idx = child_idx,
-      mother_idx = mother_idx,
-      father_idx = father_idx,
-      pedigree_present = !is.na(child_idx) &
-        !is.na(mother_idx) &
-        !is.na(father_idx)
-    )
+  present <- !is.na(child_idx) & !is.na(mother_idx) & !is.na(father_idx)
   
-  stats <- lapply(seq_len(nrow(out)), function(i) {
-    if (!out$pedigree_present[i]) {
-      return(
-        tibble::tibble(
-          n_markers = NA_integer_,
-          n_evaluated = NA_integer_,
-          n_missing = NA_integer_,
-          n_errors = NA_integer_,
-          error_rate = NA_real_
-        )
-      )
-    }
-    
-    child <- G[out$child_idx[i], ]
-    mother <- G[out$mother_idx[i], ]
-    father <- G[out$father_idx[i], ]
-    
-    complete <- !is.na(child) &
-      !is.na(mother) &
-      !is.na(father)
-    
-    key <- paste(child[complete], mother[complete], father[complete], sep = ":")
-    
-    n_markers <- length(child)
-    n_evaluated <- sum(complete)
-    n_missing <- sum(!complete)
-    n_errors <- sum(key %in% invalid_keys)
-    tibble::tibble(
-      n_markers = n_markers,
-      n_evaluated = n_evaluated,
-      n_missing = n_missing,
-      n_errors = n_errors,
-      error_rate = if (n_evaluated > 0) {
-        n_errors / n_evaluated
-      } else {
-        NA_real_
-      }
-    )
-  })
+  n <- nrow(trios)
   
-  out %>%
-    dplyr::bind_cols(dplyr::bind_rows(stats)) %>%
-    dplyr::select(
-      -child_idx,
-      -mother_idx,
-      -father_idx
-    )
+  res <- data.frame(n_markers = rep(NA_integer_, n), n_evaluated = NA_integer_,
+                    n_missing = NA_integer_, n_errors = NA_integer_,
+                    error_rate = NA_real_)
   
+  if (any(present)) {
+    C  <- G[child_idx[present], , drop = FALSE]
+    M  <- G[mother_idx[present], , drop = FALSE]
+    Fa <- G[father_idx[present], , drop = FALSE]
+    ok  <- !is.na(C) & !is.na(M) & !is.na(Fa)
+    # late generations: impossible only if parents share a homozygote and child differs
+    err <- ok & (M == Fa) & (M != 1) & (C != M)
+    n_ev  <- rowSums(ok)
+    n_err <- rowSums(err)
+    res[present, ] <- data.frame(ncol(G), n_ev, ncol(G) - n_ev, n_err,
+                                 ifelse(n_ev > 0, n_err / n_ev, NA_real_))
+  }
   
+  out <- trios
+  out$pedigree_present <- present
+  cbind(out, res)
 }
 
 
